@@ -130,3 +130,61 @@ Correcciones derivadas de la bitácora:
 ---
 
 Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)…
+## Persistencia offline-first
+
+Sesión 11. El inventario se guarda en una base SQLite local construida con
+SQLDelight 2.1.0. Esa base es la única fuente de verdad de la pantalla: el
+ViewModel se suscribe a ella con un `Flow` y la red solo la mantiene al día.
+
+### Piezas
+
+| Archivo | Responsabilidad |
+| --- | --- |
+| `commonMain/sqldelight/.../db/Producto.sq` | Tabla `producto` con la marca `pendiente` y sus consultas. Genera `PharmaDb`. |
+| `data/local/CreadorDeDriver.kt` | Abre la base. `CreadorDeDriverAndroid` usa `AndroidSqliteDriver`; `CreadorDeDriverIos`, `NativeSqliteDriver`. Los dos guardan `pharma.db` y se registran en el `platformModule`. |
+| `data/local/ProductoLocal.kt` | Consultas y conversión fila ↔ `Producto`. No importa Ktor ni los DTO. |
+| `data/remote/ProductoApiRest.kt` | Llamadas a `/productos` de PharmaSoft (antes `ProductoRepositorioRest`). |
+| `data/repository/ProductoRepositorioOffline.kt` | Implementa `ProductoRepository`: `observar()`, `registrar()` y `sincronizar()`. |
+| `presentation/producto/ProductoViewModel.kt` | Recoge `observar()` en el `init`, sincroniza al abrir y muestra el aviso «Sin conexión: mostrando datos guardados». |
+
+### Reglas
+
+- **Ids locales negativos.** Un producto creado sin red se guarda con `id < 0`
+  y `pendiente = 1`, y la lista lo muestra con la etiqueta «Pendiente».
+- **Primero subir, después bajar.** `sincronizar()` envía cada pendiente, cambia
+  su fila por la que devuelve PharmaSoft (con el id real) y solo entonces trae
+  la lista del servidor. `borrarSincronizados` borra únicamente `pendiente = 0`.
+- **Transacciones.** La bajada se escribe dentro de `transaction`, así el
+  `Flow` emite una sola vez y la lista no parpadea.
+- **Fallo de red.** `registrar()` guarda primero en local; si el envío falla con
+  `ErrorSesion.SinConexion`, el producto queda pendiente sin mostrar error. Los
+  demás errores (401, 403) sí se informan.
+- **Sin recargas manuales.** Después de registrar no se pide la lista: el
+  producto ya está en la tabla y el `Flow` emite.
+- Un `Mutex` evita que dos sincronizaciones envíen el mismo pendiente dos veces.
+
+### Pruebas
+
+`ProductoRepositorioOfflineTest` usa una base SQLite real en memoria, distinta
+en cada prueba (`baseEnMemoria()`). El driver de pruebas es un `expect` de
+`commonTest`: en la JVM es `JdbcSqliteDriver(IN_MEMORY)` y en iOS el driver
+nativo en memoria. Cubren el camino con red, el camino sin red, el orden
+subir-bajar, que la bajada no borre pendientes y que un pendiente no se envíe
+dos veces. También se actualizaron `ProductoViewModelTest` y `AppModuleTest`,
+y se añadió `SincronizarProductosUseCaseTest`.
+
+```powershell
+.\gradlew :shared:testAndroidHostTest
+```
+
+En iOS, `Config.xcconfig` añade `-lsqlite3` porque el framework `Shared` es
+estático y el driver nativo necesita la librería SQLite del sistema.
+
+### Verificación del ciclo offline (emulador Android)
+
+1. Con red, abrir la app, iniciar sesión y dejar que sincronice. Cerrar la app.
+2. Activar el modo avión y volver a abrir la app: el listado aparece con el aviso
+   «Sin conexión: mostrando datos guardados».
+3. Registrar un producto: aparece de inmediato con la etiqueta «Pendiente».
+4. Desactivar el modo avión y pulsar el botón de sincronizar.
+5. En Swagger, `GET /api/v1/productos` muestra el producto con un id positivo.
