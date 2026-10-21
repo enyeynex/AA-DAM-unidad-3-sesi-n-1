@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
+    alias(libs.plugins.sqldelight)
 }
 
 kotlin {
@@ -49,10 +50,14 @@ kotlin {
             // Motor HTTP de Android y almacen cifrado para el token (sesion 10).
             implementation(libs.ktor.client.okhttp)
             implementation(libs.androidx.security.crypto)
+            // Driver SQLite de Android para la base local (sesion 11).
+            implementation(libs.sqldelight.android)
         }
         iosMain.dependencies {
             // Motor HTTP de iOS, basado en NSURLSession.
             implementation(libs.ktor.client.darwin)
+            // Driver SQLite nativo de iOS para la base local (sesion 11).
+            implementation(libs.sqldelight.native)
         }
         commonMain.dependencies {
             // api: androidApp llama a initKoin(), cuya firma expone KoinAppDeclaration.
@@ -74,11 +79,27 @@ kotlin {
             implementation(libs.ktor.serialization.kotlinx.json)
             implementation(libs.ktor.client.auth)
             implementation(libs.ktor.client.logging)
+            // Base local offline-first: tablas y consultas tipadas, observables como Flow.
+            implementation(libs.sqldelight.runtime)
+            implementation(libs.sqldelight.coroutines)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.ktor.client.mock)
+        }
+        // Las pruebas de commonTest se ejecutan en la JVM con el driver JDBC en
+        // memoria; en iOS usan el driver nativo en memoria (ver BaseDePrueba).
+        getByName("androidHostTest").dependencies {
+            implementation(libs.sqldelight.jvm)
+        }
+    }
+}
+
+sqldelight {
+    databases {
+        create("PharmaDb") {
+            packageName.set("pe.edu.upeu.pharmamobil.db")
         }
     }
 }
