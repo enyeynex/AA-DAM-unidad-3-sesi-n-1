@@ -6,6 +6,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import pe.edu.upeu.pharmamobil.domain.model.Producto
 import pe.edu.upeu.pharmamobil.domain.platform.Compartidor
@@ -41,10 +42,10 @@ class DetalleProductoViewModel(
             productoActual = null
             _uiState.value = DetalleProductoUiState.Cargando
 
-            // El repositorio todavia no expone una busqueda por id, asi que
-            // el producto se toma del inventario.
+            // El producto se toma de la base local: el detalle tambien
+            // funciona sin conexion.
             _uiState.value = resultadoDe {
-                repository.listar().firstOrNull { it.id == id }
+                repository.observar().first().firstOrNull { it.id == id }
             }.fold(
                 onSuccess = { producto ->
                     if (producto == null) {

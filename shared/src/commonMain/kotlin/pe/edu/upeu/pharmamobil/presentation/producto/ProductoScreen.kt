@@ -15,11 +15,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Medication
+import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -68,7 +71,15 @@ fun ProductoScreen(
             MensajeExito(it)
         }
 
-        EncabezadoInventario(uiState.fase)
+        uiState.avisoRed?.let {
+            AvisoRed(mensaje = it, pendientes = uiState.pendientes)
+        }
+
+        EncabezadoInventario(
+            fase = uiState.fase,
+            sincronizando = uiState.sincronizando,
+            onSincronizar = viewModel::sincronizar
+        )
 
         Box(
             modifier = Modifier
@@ -125,7 +136,7 @@ fun ProductoScreen(
                         colorIcono = MaterialTheme.colorScheme.error,
                         modifier = Modifier.align(Alignment.Center),
                         accion = {
-                            FilledTonalButton(onClick = viewModel::cargarProductos) {
+                            FilledTonalButton(onClick = viewModel::sincronizar) {
                                 Text("Reintentar")
                             }
                         }
@@ -208,8 +219,49 @@ private fun FormularioProductoCard(
 
 
 @Composable
+private fun AvisoRed(
+    mensaje: String,
+    pendientes: Int
+) {
+
+    Surface(
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.tertiaryContainer,
+        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+
+            Icon(imageVector = Icons.Default.WifiOff, contentDescription = null)
+
+            Column {
+                Text(text = mensaje, style = MaterialTheme.typography.bodyMedium)
+                if (pendientes > 0) {
+                    Text(
+                        text = if (pendientes == 1) {
+                            "1 producto pendiente de enviar"
+                        } else {
+                            "$pendientes productos pendientes de enviar"
+                        },
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                }
+            }
+        }
+    }
+}
+
+
+@Composable
 private fun EncabezadoInventario(
-    fase: ProductoUiState.Fase
+    fase: ProductoUiState.Fase,
+    sincronizando: Boolean,
+    onSincronizar: () -> Unit
 ) {
 
     Row(
@@ -232,6 +284,19 @@ private fun EncabezadoInventario(
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+
+        if (sincronizando) {
+            CircularProgressIndicator(
+                strokeWidth = 2.dp,
+                modifier = Modifier
+                    .padding(start = 12.dp)
+                    .size(24.dp)
+            )
+        } else {
+            IconButton(onClick = onSincronizar) {
+                Icon(imageVector = Icons.Default.Sync, contentDescription = "Sincronizar")
+            }
         }
     }
 }
@@ -283,6 +348,25 @@ private fun ProductoItem(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+
+            if (producto.pendiente) {
+
+                Surface(
+                    shape = MaterialTheme.shapes.small,
+                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                ) {
+
+                    Text(
+                        text = "Pendiente",
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.padding(
+                            horizontal = 8.dp,
+                            vertical = 4.dp
+                        )
+                    )
+                }
             }
 
             if (producto.requiereReposicion) {

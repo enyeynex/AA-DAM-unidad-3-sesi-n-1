@@ -4,7 +4,13 @@ data class ProductoUiState(
     val fase: Fase = Fase.Cargando,
     val formulario: FormularioProducto = FormularioProducto(),
     val registrando: Boolean = false,
-    val mensajeExito: String? = null
+    val mensajeExito: String? = null,
+    /** Hay una sincronizacion con PharmaSoft en curso. */
+    val sincronizando: Boolean = false,
+    /** Aviso cuando la ultima sincronizacion fallo; la lista sigue visible. */
+    val avisoRed: String? = null,
+    /** Productos creados sin red que PharmaSoft todavia no conoce. */
+    val pendientes: Int = 0
 ) {
 
     /** Fases excluyentes del inventario: solo una puede estar activa. */

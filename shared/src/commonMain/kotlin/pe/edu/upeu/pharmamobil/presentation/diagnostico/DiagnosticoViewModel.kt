@@ -10,7 +10,9 @@ import kotlinx.coroutines.launch
 import pe.edu.upeu.pharmamobil.domain.sesion.DiagnosticoSesion
 import pe.edu.upeu.pharmamobil.domain.sesion.EstadoToken
 import pe.edu.upeu.pharmamobil.domain.sesion.ResultadoDiagnostico
-import pe.edu.upeu.pharmamobil.domain.usecase.ListarProductosUseCase
+import kotlinx.coroutines.flow.first
+import pe.edu.upeu.pharmamobil.domain.usecase.ObservarProductosUseCase
+import pe.edu.upeu.pharmamobil.domain.usecase.SincronizarProductosUseCase
 
 data class DiagnosticoUiState(
     val estadoToken: EstadoToken = EstadoToken(guardado = false),
@@ -21,12 +23,14 @@ data class DiagnosticoUiState(
 
 /**
  * Pruebas de la actividad autonoma de la sesion 10. «Consultar inventario»
- * usa el caso de uso real: si el servidor responde 401, la app cierra la
- * sesion igual que en cualquier otra pantalla.
+ * usa el caso de uso real (desde la sesion 11, la sincronizacion): si el
+ * servidor responde 401, la app cierra la sesion igual que en cualquier
+ * otra pantalla.
  */
 class DiagnosticoViewModel(
     private val diagnostico: DiagnosticoSesion,
-    private val listarProductos: ListarProductosUseCase,
+    private val sincronizarProductos: SincronizarProductosUseCase,
+    private val observarProductos: ObservarProductosUseCase,
     val esDepuracion: Boolean
 ) : ViewModel() {
 
@@ -42,8 +46,8 @@ class DiagnosticoViewModel(
     }
 
     fun consultarInventario() = ejecutar("Consultar inventario") {
-        listarProductos().fold(
-            onSuccess = { "HTTP 200 · ${it.size} productos" },
+        sincronizarProductos().fold(
+            onSuccess = { "HTTP 200 · ${observarProductos().first().size} productos" },
             onFailure = { it.message ?: "Error" }
         )
     }
