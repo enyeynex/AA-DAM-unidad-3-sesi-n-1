@@ -1,0 +1,4 @@
+-- Version 2 a 3 (correccion durante la actividad autonoma): un pendiente que
+-- PharmaSoft rechaza (por ejemplo, nombre repetido) guarda el motivo aqui en
+-- lugar de bloquear la sincronizacion de todo lo demas.
+ALTER TABLE producto ADD COLUMN rechazo TEXT;

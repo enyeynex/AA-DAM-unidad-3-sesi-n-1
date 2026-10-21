@@ -20,6 +20,9 @@ class FakeProductoApi(
     /** Error distinto de la falta de red (por ejemplo, un 401). */
     var fallo: FalloSesionException? = null
 
+    /** Nombres que PharmaSoft rechaza con 409, como uno repetido. */
+    val rechazados = mutableSetOf<String>()
+
     /** Hace fallar solo la bajada, despues de que la subida funciono. */
     var fallaAlListar = false
 
@@ -35,6 +38,9 @@ class FakeProductoApi(
     override suspend fun registrar(producto: Producto): Producto {
         comprobar()
         eventos += "registrar ${producto.nombre}"
+        if (producto.nombre in rechazados) {
+            throw ErrorServidorException("Ya existe un producto con el nombre ${producto.nombre}")
+        }
         val creado = producto.copy(id = siguienteId++)
         enServidor += creado
         return creado

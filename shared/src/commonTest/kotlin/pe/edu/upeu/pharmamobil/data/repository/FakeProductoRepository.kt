@@ -54,4 +54,8 @@ class FakeProductoRepository(
     }
 
     override fun ultimaSincronizacion(): Flow<Long?> = ultima
+
+    override suspend fun descartar(id: Long) {
+        tabla.update { lista -> lista.filterNot { it.id == id } }
+    }
 }

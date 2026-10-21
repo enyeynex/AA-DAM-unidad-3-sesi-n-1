@@ -231,3 +231,20 @@ consulta `/auth/me`: con red, el 401 cierra la sesión; sin red, la sesión se
 arma con los claims del token (`Sesion.expirada = true`), se ven los datos
 locales con un aviso y el 401 de la siguiente sincronización cierra la sesión
 al reconectar.
+
+### Hallazgo: pendiente rechazado por PharmaSoft
+
+Durante el escenario 3 de la bitácora, un producto creado sin red se llamaba
+igual que otro del servidor y PharmaSoft respondió 409 («Ya existe un producto
+con el nombre…»). El error cortaba `sincronizar()`: el pendiente se reintentaba
+siempre y la lista nunca volvía a bajar. Corrección:
+
+- `subirPendientes()` atrapa `ErrorServidorException` por producto, guarda el
+  motivo en la columna `rechazo` (migración `2.sqm`) y sigue con los demás. La
+  falta de red y los 401/403 sí cortan la sincronización.
+- Un rechazado no se reenvía (`listarPendientes` lo excluye), se muestra en rojo
+  con el motivo y un botón **Descartar** que solo borra filas que el servidor no
+  conoce.
+- `registrar()` ahora devuelve el producto como quedó (id del servidor, id local
+  o rechazado), así el mensaje de la pantalla corresponde a lo que pasó.
+- Pruebas: `RechazoAlSincronizarTest`.

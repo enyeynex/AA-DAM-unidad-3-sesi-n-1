@@ -10,6 +10,7 @@ import pe.edu.upeu.pharmamobil.data.repository.FakeProductoRepository
 import pe.edu.upeu.pharmamobil.domain.model.Producto
 import pe.edu.upeu.pharmamobil.domain.model.ErrorSesion
 import pe.edu.upeu.pharmamobil.domain.model.FalloSesionException
+import pe.edu.upeu.pharmamobil.domain.usecase.DescartarProductoUseCase
 import pe.edu.upeu.pharmamobil.domain.usecase.ObservarProductosUseCase
 import pe.edu.upeu.pharmamobil.domain.usecase.SincronizarProductosUseCase
 import pe.edu.upeu.pharmamobil.domain.usecase.UltimaSincronizacionUseCase
@@ -47,7 +48,8 @@ class ProductoViewModelTest {
         registrarProducto = RegistrarProductoUseCase(repositorio),
         observarProductos = ObservarProductosUseCase(repositorio),
         sincronizarProductos = SincronizarProductosUseCase(repositorio),
-        ultimaSincronizacion = UltimaSincronizacionUseCase(repositorio)
+        ultimaSincronizacion = UltimaSincronizacionUseCase(repositorio),
+        descartarProducto = DescartarProductoUseCase(repositorio)
     )
 
     @Test
@@ -226,5 +228,27 @@ class ProductoViewModelTest {
         val repositorio = FakeProductoRepository().apply { instanteDeSincronizacion = 42_000L }
 
         assertEquals(42_000L, nuevoViewModel(repositorio).uiState.value.ultimaSincronizacion)
+    }
+
+    @Test
+    fun unRechazadoSeCuentaAparteYSePuedeDescartar() = runTest {
+
+        val repositorio = FakeProductoRepository(
+            listOf(
+                Producto(id = -1L, nombre = "paracetamol", precio = 3.0, stock = 15,
+                    rechazo = "Ya existe un producto con el nombre paracetamol"),
+                Producto(id = 1L, nombre = "paracetamol", precio = 12.0, stock = 0)
+            )
+        )
+        val viewModel = nuevoViewModel(repositorio)
+
+        assertEquals(1, viewModel.uiState.value.rechazados)
+        assertEquals(0, viewModel.uiState.value.pendientes)
+
+        viewModel.descartar(-1L)
+
+        val fase = assertIs<ProductoUiState.Fase.ConProductos>(viewModel.uiState.value.fase)
+        assertEquals(listOf(1L), fase.productos.map { it.id })
+        assertEquals(0, viewModel.uiState.value.rechazados)
     }
 }

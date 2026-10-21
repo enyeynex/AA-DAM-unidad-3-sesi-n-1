@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
 import pe.edu.upeu.pharmamobil.domain.model.ErrorSesion
 import pe.edu.upeu.pharmamobil.domain.model.FalloSesionException
 import pe.edu.upeu.pharmamobil.domain.model.Producto
+import pe.edu.upeu.pharmamobil.domain.usecase.DescartarProductoUseCase
 import pe.edu.upeu.pharmamobil.domain.usecase.ObservarProductosUseCase
 import pe.edu.upeu.pharmamobil.domain.usecase.ProductoInvalidoException
 import pe.edu.upeu.pharmamobil.domain.usecase.RegistrarProductoUseCase
@@ -26,7 +27,8 @@ class ProductoViewModel(
     private val registrarProducto: RegistrarProductoUseCase,
     private val observarProductos: ObservarProductosUseCase,
     private val sincronizarProductos: SincronizarProductosUseCase,
-    private val ultimaSincronizacion: UltimaSincronizacionUseCase
+    private val ultimaSincronizacion: UltimaSincronizacionUseCase,
+    private val descartarProducto: DescartarProductoUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProductoUiState())
@@ -48,7 +50,8 @@ class ProductoViewModel(
                     _uiState.update {
                         it.copy(
                             fase = faseDe(productos),
-                            pendientes = productos.count { p -> p.id < 0 }
+                            pendientes = productos.count { p -> p.id < 0 && p.rechazo == null },
+                            rechazados = productos.count { p -> p.rechazo != null }
                         )
                     }
                 }
@@ -130,11 +133,17 @@ class ProductoViewModel(
                         it.copy(
                             registrando = false,
                             formulario = FormularioProducto(),
-                            mensajeExito = if (producto.id < 0) {
-                                "Producto \"${producto.nombre}\" guardado sin conexión: se enviará al sincronizar"
-                            } else {
-                                "Producto \"${producto.nombre}\" registrado correctamente"
-                            }
+                            mensajeExito = when {
+                                producto.rechazo != null -> null
+                                producto.id < 0 ->
+                                    "Producto \"${producto.nombre}\" guardado sin conexión: se enviará al sincronizar"
+                                else ->
+                                    "Producto \"${producto.nombre}\" registrado correctamente"
+                            },
+                            // Rechazo del servidor: no es un exito, va como aviso.
+                            avisoRed = producto.rechazo?.let { motivo ->
+                                "PharmaSoft rechazó \"${producto.nombre}\": $motivo"
+                            } ?: it.avisoRed
                         )
                     }
                 },
@@ -162,6 +171,13 @@ class ProductoViewModel(
                     }
                 }
             )
+        }
+    }
+
+    /** Accion «Descartar» de un producto rechazado: la lista se actualiza por el Flow. */
+    fun descartar(id: Long) {
+        viewModelScope.launch {
+            descartarProducto(id)
         }
     }
 

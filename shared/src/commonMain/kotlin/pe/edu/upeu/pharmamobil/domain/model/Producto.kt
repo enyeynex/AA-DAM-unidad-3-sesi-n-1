@@ -4,7 +4,9 @@ data class Producto(
     val id:Long,
     val nombre:String,
     val precio:Double,
-    val stock: Int
+    val stock: Int,
+    /** Motivo si PharmaSoft rechazo este producto creado sin red; null si no. */
+    val rechazo: String? = null
 ) {
 
 

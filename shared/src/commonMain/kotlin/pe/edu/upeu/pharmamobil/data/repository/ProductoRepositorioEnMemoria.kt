@@ -40,6 +40,10 @@ class ProductoRepositorioEnMemoria : ProductoRepository {
 
     override fun ultimaSincronizacion(): Flow<Long?> = flowOf(null)
 
+    override suspend fun descartar(id: Long) {
+        productos.update { lista -> lista.filterNot { it.id == id } }
+    }
+
     private companion object {
         const val RETARDO_REGISTRO_MS = 400L
     }

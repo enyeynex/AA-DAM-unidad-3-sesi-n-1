@@ -14,6 +14,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.Sync
@@ -86,6 +88,10 @@ fun ProductoScreen(
 
         uiState.avisoRed?.let {
             AvisoRed(mensaje = it, pendientes = uiState.pendientes)
+        }
+
+        if (uiState.rechazados > 0) {
+            AvisoRechazados(cantidad = uiState.rechazados)
         }
 
         EncabezadoInventario(
@@ -168,7 +174,8 @@ fun ProductoScreen(
                         ) { producto ->
                             ProductoItem(
                                 producto = producto,
-                                onClick = { onVerDetalle(producto.id) }
+                                onClick = { onVerDetalle(producto.id) },
+                                onDescartar = { viewModel.descartar(producto.id) }
                             )
                         }
                     }
@@ -362,9 +369,41 @@ private fun EncabezadoInventario(
 
 
 @Composable
+private fun AvisoRechazados(cantidad: Int) {
+
+    Surface(
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.errorContainer,
+        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+
+            Icon(imageVector = Icons.Default.ErrorOutline, contentDescription = null)
+
+            Text(
+                text = if (cantidad == 1) {
+                    "PharmaSoft rechazó 1 producto creado sin conexión. Revisa el motivo y descártalo."
+                } else {
+                    "PharmaSoft rechazó $cantidad productos creados sin conexión. Revisa el motivo y descártalos."
+                },
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+    }
+}
+
+
+@Composable
 private fun ProductoItem(
     producto: ProductoUi,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onDescartar: () -> Unit
 ) {
 
     Card(
@@ -407,6 +446,24 @@ private fun ProductoItem(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+
+                producto.rechazo?.let { motivo ->
+                    Text(
+                        text = "Rechazado: $motivo",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+
+            if (producto.rechazo != null) {
+                IconButton(onClick = onDescartar) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Descartar",
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
             }
 
             if (producto.pendiente) {

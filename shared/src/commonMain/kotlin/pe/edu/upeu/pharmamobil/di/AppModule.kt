@@ -22,6 +22,7 @@ import pe.edu.upeu.pharmamobil.domain.repository.ProductoRepository
 import pe.edu.upeu.pharmamobil.domain.sesion.AvisosDeSesion
 import pe.edu.upeu.pharmamobil.domain.sesion.DiagnosticoSesion
 import pe.edu.upeu.pharmamobil.domain.usecase.CerrarSesionUseCase
+import pe.edu.upeu.pharmamobil.domain.usecase.DescartarProductoUseCase
 import pe.edu.upeu.pharmamobil.domain.usecase.IniciarSesionUseCase
 import pe.edu.upeu.pharmamobil.domain.usecase.ListarClientesUseCase
 import pe.edu.upeu.pharmamobil.domain.usecase.ObservarProductosUseCase
@@ -63,6 +64,7 @@ val domainModule = module {
     factory { ObservarProductosUseCase(get()) }
     factory { SincronizarProductosUseCase(get()) }
     factory { UltimaSincronizacionUseCase(get()) }
+    factory { DescartarProductoUseCase(get()) }
     factory { RegistrarClienteUseCase(get()) }
     factory { ListarClientesUseCase(get()) }
     factory { IniciarSesionUseCase(get()) }
@@ -71,7 +73,7 @@ val domainModule = module {
 }
 
 val presentationModule = module {
-    viewModel { ProductoViewModel(get(), get(), get(), get()) }
+    viewModel { ProductoViewModel(get(), get(), get(), get(), get()) }
     viewModel { ClienteViewModel(get(), get()) }
     // El Compartidor lo aporta el platformModule de cada plataforma.
     viewModel { DetalleProductoViewModel(get(), get()) }

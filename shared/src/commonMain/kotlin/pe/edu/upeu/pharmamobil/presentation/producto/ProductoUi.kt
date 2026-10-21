@@ -11,7 +11,9 @@ data class ProductoUi(
     val stock: String,
     val requiereReposicion: Boolean,
     /** Id negativo: el producto se creo sin red y aun no existe en PharmaSoft. */
-    val pendiente: Boolean = false
+    val pendiente: Boolean = false,
+    /** Motivo si PharmaSoft rechazo el producto; se muestra con «Descartar». */
+    val rechazo: String? = null
 )
 
 /**
@@ -25,5 +27,6 @@ fun Producto.aUi(): ProductoUi = ProductoUi(
     precio = formatearSoles(precio),
     stock = "$stock u.",
     requiereReposicion = requiereReposicion,
-    pendiente = id < 0
+    pendiente = id < 0 && rechazo == null,
+    rechazo = rechazo
 )

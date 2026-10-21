@@ -20,4 +20,7 @@ interface ProductoRepository {
 
     /** Instante (ms) de la ultima sincronizacion correcta; null si nunca hubo. */
     fun ultimaSincronizacion(): Flow<Long?>
+
+    /** Borra un producto que aun no existe en el servidor (pendiente o rechazado). */
+    suspend fun descartar(id: Long)
 }

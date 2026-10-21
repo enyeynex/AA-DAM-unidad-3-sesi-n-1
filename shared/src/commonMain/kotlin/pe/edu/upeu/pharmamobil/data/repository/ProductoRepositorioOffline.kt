@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import pe.edu.upeu.pharmamobil.data.local.ProductoLocal
+import pe.edu.upeu.pharmamobil.data.remote.ErrorServidorException
 import pe.edu.upeu.pharmamobil.data.remote.ProductoApi
 import pe.edu.upeu.pharmamobil.domain.model.ErrorSesion
 import pe.edu.upeu.pharmamobil.domain.model.FalloSesionException
@@ -30,10 +31,21 @@ class ProductoRepositorioOffline(
 
     override fun observar(): Flow<List<Producto>> = local.observar()
 
+    /** Pendientes que la ultima subida envio, por su id local. */
+    private val enviados = mutableMapOf<Long, Producto>()
+
+    /**
+     * Devuelve el producto como quedo: con el id del servidor si se envio,
+     * con id local si sigue pendiente, o con el motivo si PharmaSoft lo rechazo.
+     */
     override suspend fun registrar(producto: Producto): Producto {
         val guardado = local.guardarPendiente(producto)
         intentar { sincronizar() }
-        return guardado
+        return enviados.remove(guardado.id) ?: local.buscar(guardado.id) ?: guardado
+    }
+
+    override suspend fun descartar(id: Long) {
+        local.descartarPendiente(id)
     }
 
     override fun ultimaSincronizacion(): Flow<Long?> = local.ultimaSincronizacion()
@@ -48,10 +60,22 @@ class ProductoRepositorioOffline(
         local.registrarSincronizacion(ahora())
     }
 
+    /**
+     * Un pendiente que PharmaSoft rechaza (por ejemplo, 409 por nombre
+     * repetido) se marca y se sigue con los demas: si se lanzara el error,
+     * ese producto bloquearia para siempre la subida y la bajada. La falta de
+     * red y los errores de sesion (401, 403) si cortan la sincronizacion.
+     */
     private suspend fun subirPendientes() {
+        enviados.clear()
         local.pendientes().forEach { pendiente ->
-            val enviado = remoto.registrar(pendiente)
-            local.confirmarEnviado(pendiente.id, enviado)
+            try {
+                val enviado = remoto.registrar(pendiente)
+                local.confirmarEnviado(pendiente.id, enviado)
+                enviados[pendiente.id] = enviado
+            } catch (rechazo: ErrorServidorException) {
+                local.marcarRechazado(pendiente.id, rechazo.message ?: "Rechazado por PharmaSoft")
+            }
         }
     }
 

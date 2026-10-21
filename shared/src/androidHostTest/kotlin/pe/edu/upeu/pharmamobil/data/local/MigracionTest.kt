@@ -8,13 +8,13 @@ import kotlin.test.assertNull
 
 /**
  * Quien instalo la app en la practica tiene pharma.db en la version 1 (solo la
- * tabla producto). La migracion 1.sqm debe agregar la tabla sincronizacion
- * sin perder los productos guardados.
+ * tabla producto). Las migraciones 1.sqm (tabla sincronizacion) y 2.sqm
+ * (columna rechazo) deben aplicarse sin perder los productos guardados.
  */
 class MigracionTest {
 
     @Test
-    fun laVersion1MigraALa2SinPerderProductos() {
+    fun laVersion1MigraALaUltimaSinPerderProductos() {
         val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
         driver.execute(
             null,
@@ -27,8 +27,10 @@ class MigracionTest {
         PharmaDb.Schema.migrate(driver, oldVersion = 1, newVersion = PharmaDb.Schema.version)
         val base = PharmaDb(driver)
 
-        assertEquals(2L, PharmaDb.Schema.version)
-        assertEquals("Ibuprofeno", base.productoQueries.listarPendientes().executeAsOne().nombre)
+        assertEquals(3L, PharmaDb.Schema.version)
+        val pendiente = base.productoQueries.listarPendientes().executeAsOne()
+        assertEquals("Ibuprofeno", pendiente.nombre)
+        assertNull(pendiente.rechazo, "2.sqm agrego la columna rechazo vacia")
         assertNull(base.sincronizacionQueries.ultima().executeAsOneOrNull())
         base.sincronizacionQueries.registrar(5_000L)
         assertEquals(5_000L, base.sincronizacionQueries.ultima().executeAsOne())

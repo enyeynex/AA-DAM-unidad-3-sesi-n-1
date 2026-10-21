@@ -74,6 +74,19 @@ class ProductoLocal(base: PharmaDb) {
         }
     }
 
+    fun buscar(id: Long): Producto? =
+        consultas.buscarPorId(id).executeAsOneOrNull()?.aDominio()
+
+    /** PharmaSoft no acepto el pendiente: se guarda el motivo y deja de enviarse. */
+    fun marcarRechazado(id: Long, motivo: String) {
+        consultas.marcarRechazado(motivo, id)
+    }
+
+    /** Solo borra filas que el servidor no conoce (pendiente = 1). */
+    fun descartarPendiente(id: Long) {
+        consultas.descartarPendiente(id)
+    }
+
     /** Instante (ms) de la ultima sincronizacion correcta; null si nunca hubo. */
     fun ultimaSincronizacion(): Flow<Long?> =
         sincronizaciones.ultima()
@@ -88,6 +101,7 @@ class ProductoLocal(base: PharmaDb) {
         id = id,
         nombre = nombre,
         precio = precio,
-        stock = stock.toInt()
+        stock = stock.toInt(),
+        rechazo = rechazo
     )
 }
