@@ -10,7 +10,12 @@ data class Sesion(
     val token: String,
     val usuario: String,
     val nombreCompleto: String,
-    val permisos: Set<String>
+    val permisos: Set<String>,
+    /**
+     * El token ya vencio, pero no hubo red para confirmarlo con PharmaSoft: la
+     * sesion solo sirve para ver los datos locales hasta reconectar.
+     */
+    val expirada: Boolean = false
 ) {
     fun puede(permiso: String): Boolean = permiso in permisos
 }

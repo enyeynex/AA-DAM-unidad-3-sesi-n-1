@@ -248,15 +248,30 @@ class ClienteHttpAutenticadoTest {
     }
 
     @Test
-    fun laSesionGuardadaVencidaSeDescartaSinIrAlServidor() = runTest {
+    fun laSesionGuardadaVencidaConRedSeCierraPorEl401() = runTest {
 
         val token = jwtDePrueba("admin", listOf("ROLE_ADMIN"), expiraEn = 500L)
         val escenario = Escenario(almacen = FakeAlmacenSeguro(token), ahora = 1_000L) {
-            fail("No deberia consultar al servidor")
+            respondError(HttpStatusCode.Unauthorized, """{"status":401,"message":"El token ha expirado. Inicie sesión nuevamente"}""", json)
         }
 
         assertNull(escenario.auth.sesionGuardada())
         assertNull(escenario.almacen.token)
+    }
+
+    @Test
+    fun laSesionGuardadaVencidaSinRedSeConservaParaVerLosDatosLocales() = runTest {
+
+        val token = jwtDePrueba("admin", listOf("ROLE_ADMIN", "CATALOGO_ESCRIBIR"), expiraEn = 500L)
+        val escenario = Escenario(almacen = FakeAlmacenSeguro(token), ahora = 1_000L) {
+            throw IOException("Sin red")
+        }
+
+        val sesion = assertNotNull(escenario.auth.sesionGuardada())
+
+        assertTrue(sesion.expirada)
+        assertEquals("admin", sesion.usuario)
+        assertEquals(token, escenario.almacen.token, "el token se conserva hasta poder validarlo")
     }
 
     @Test

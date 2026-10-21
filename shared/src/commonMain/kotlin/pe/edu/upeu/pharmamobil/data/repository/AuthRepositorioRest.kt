@@ -44,16 +44,21 @@ class AuthRepositorioRest(
     }
 
     /**
-     * Reconstruye la sesion a partir del token del almacen. Si ya vencio se
-     * descarta sin consultar al servidor; si sigue vigente se pide /auth/me
-     * para tener el nombre y los permisos actuales. Sin conexion, la sesion
-     * se arma con los claims del propio token.
+     * Reconstruye la sesion a partir del token del almacen pidiendo /auth/me,
+     * para tener el nombre y los permisos actuales.
+     *
+     * Offline-first (actividad autonoma de la sesion 11): un token vencido ya
+     * no se descarta sin preguntar. Con red, PharmaSoft responde 401 y se
+     * cierra la sesion. Sin red, mandar al login no sirve (no hay con que
+     * iniciar sesion): la sesion se arma con los claims del token para que el
+     * usuario vea sus datos locales, y el 401 de la siguiente sincronizacion
+     * la cierra en cuanto vuelva la conexion.
      */
     override suspend fun sesionGuardada(): Sesion? {
         val token = almacen.leerToken() ?: return null
         val claims = leerClaims(token)
 
-        if (claims == null || claims.expirado(ahora())) {
+        if (claims == null) {
             cerrarSesion()
             return null
         }
@@ -69,7 +74,8 @@ class AuthRepositorioRest(
                     token = token,
                     usuario = claims.usuario,
                     nombreCompleto = claims.usuario,
-                    permisos = claims.autoridades.toSet()
+                    permisos = claims.autoridades.toSet(),
+                    expirada = claims.expirado(ahora())
                 )
                 else -> {
                     cerrarSesion()

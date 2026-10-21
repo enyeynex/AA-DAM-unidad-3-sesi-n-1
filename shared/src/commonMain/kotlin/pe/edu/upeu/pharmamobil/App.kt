@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocalPharmacy
@@ -343,10 +344,20 @@ private fun PantallaPrincipal(
 
             ) { paddingValues ->
 
+              Column(
+                  modifier = Modifier
+                      .fillMaxSize()
+                      .padding(paddingValues)
+              ) {
+
+                if (sesion.expirada) {
+                    AvisoSesionVencidaSinRed()
+                }
+
                 Box(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
+                        .fillMaxWidth()
+                        .weight(1f)
                 ) {
 
                     when (pantallaActual) {
@@ -404,7 +415,39 @@ private fun PantallaPrincipal(
                             )
                     }
                 }
+              }
             }
+        }
+    }
+}
+
+
+/**
+ * Token vencido y sin red (escenario 5 de la actividad autonoma): se muestran
+ * los datos locales y se avisa que al reconectar habra que iniciar sesion.
+ */
+@Composable
+private fun AvisoSesionVencidaSinRed() {
+
+    Surface(
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+
+            Icon(imageVector = Icons.Default.CloudOff, contentDescription = null)
+
+            Text(
+                text = "Tu sesión venció y no hay conexión. Ves los datos guardados; " +
+                    "al reconectar tendrás que volver a iniciar sesión.",
+                style = MaterialTheme.typography.bodySmall
+            )
         }
     }
 }
