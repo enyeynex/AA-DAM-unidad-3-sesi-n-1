@@ -13,10 +13,15 @@ import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.dsl.module
 import pe.edu.upeu.pharmamobil.data.local.AlmacenSeguro
+import pe.edu.upeu.pharmamobil.data.local.CreadorDeDriver
+import pe.edu.upeu.pharmamobil.data.local.CreadorDeDriverEnMemoria
 import pe.edu.upeu.pharmamobil.data.local.FakeAlmacenSeguro
 import pe.edu.upeu.pharmamobil.data.repository.AuthRepositorioRest
 import pe.edu.upeu.pharmamobil.data.repository.ClienteRepositorioRest
-import pe.edu.upeu.pharmamobil.data.repository.ProductoRepositorioRest
+import pe.edu.upeu.pharmamobil.data.remote.ProductoApi
+import pe.edu.upeu.pharmamobil.data.remote.ProductoApiRest
+import pe.edu.upeu.pharmamobil.data.repository.ProductoRepositorioOffline
+import pe.edu.upeu.pharmamobil.db.PharmaDb
 import pe.edu.upeu.pharmamobil.domain.platform.Compartidor
 import pe.edu.upeu.pharmamobil.domain.platform.FakeCompartidor
 import pe.edu.upeu.pharmamobil.domain.repository.AuthRepository
@@ -26,10 +31,11 @@ import pe.edu.upeu.pharmamobil.domain.sesion.AvisosDeSesion
 import pe.edu.upeu.pharmamobil.domain.usecase.CerrarSesionUseCase
 import pe.edu.upeu.pharmamobil.domain.usecase.IniciarSesionUseCase
 import pe.edu.upeu.pharmamobil.domain.usecase.ListarClientesUseCase
-import pe.edu.upeu.pharmamobil.domain.usecase.ListarProductosUseCase
+import pe.edu.upeu.pharmamobil.domain.usecase.ObservarProductosUseCase
 import pe.edu.upeu.pharmamobil.domain.usecase.RegistrarClienteUseCase
 import pe.edu.upeu.pharmamobil.domain.usecase.RegistrarProductoUseCase
 import pe.edu.upeu.pharmamobil.domain.usecase.SesionGuardadaUseCase
+import pe.edu.upeu.pharmamobil.domain.usecase.SincronizarProductosUseCase
 import pe.edu.upeu.pharmamobil.presentation.cliente.ClienteViewModel
 import pe.edu.upeu.pharmamobil.presentation.detalle.DetalleProductoViewModel
 import pe.edu.upeu.pharmamobil.presentation.diagnostico.DiagnosticoViewModel
@@ -45,7 +51,8 @@ import kotlin.test.assertSame
  * Comprueba que el grafo se ensambla sin arrancar la aplicacion. El
  * platformModule real necesita Context o UIKit, que en una prueba no
  * existen: se reemplaza por dobles de lo que aporta cada plataforma
- * (motor HTTP, AlmacenSeguro, ES_DEPURACION y Compartidor).
+ * (motor HTTP, AlmacenSeguro, ES_DEPURACION, Compartidor y, desde la
+ * sesion 11, el CreadorDeDriver con una base en memoria).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class AppModuleTest {
@@ -66,6 +73,7 @@ class AppModuleTest {
         single<AlmacenSeguro> { FakeAlmacenSeguro() }
         single(ES_DEPURACION) { false }
         single<Compartidor> { FakeCompartidor() }
+        single<CreadorDeDriver> { CreadorDeDriverEnMemoria() }
     }
 
     private fun grafoCompleto(): Koin = startKoin {
@@ -78,7 +86,8 @@ class AppModuleTest {
         val koin = grafoCompleto()
 
         assertIs<AuthRepositorioRest>(koin.get<AuthRepository>())
-        assertIs<ProductoRepositorioRest>(koin.get<ProductoRepository>())
+        assertIs<ProductoRepositorioOffline>(koin.get<ProductoRepository>())
+        assertIs<ProductoApiRest>(koin.get<ProductoApi>())
         assertIs<ClienteRepositorioRest>(koin.get<ClienteRepository>())
     }
 
@@ -92,12 +101,21 @@ class AppModuleTest {
     }
 
     @Test
+    fun laBaseLocalEsUnicaYSeAbreConElDriverDeLaPlataforma() {
+
+        val koin = grafoCompleto()
+
+        assertSame(koin.get<PharmaDb>(), koin.get<PharmaDb>())
+    }
+
+    @Test
     fun resuelveLosCasosDeUso() {
 
         val koin = grafoCompleto()
 
         koin.get<RegistrarProductoUseCase>()
-        koin.get<ListarProductosUseCase>()
+        koin.get<ObservarProductosUseCase>()
+        koin.get<SincronizarProductosUseCase>()
         koin.get<RegistrarClienteUseCase>()
         koin.get<ListarClientesUseCase>()
         koin.get<IniciarSesionUseCase>()

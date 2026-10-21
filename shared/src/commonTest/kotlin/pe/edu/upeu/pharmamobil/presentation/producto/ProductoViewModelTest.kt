@@ -8,13 +8,17 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import pe.edu.upeu.pharmamobil.data.repository.FakeProductoRepository
 import pe.edu.upeu.pharmamobil.domain.model.Producto
-import pe.edu.upeu.pharmamobil.domain.usecase.ListarProductosUseCase
+import pe.edu.upeu.pharmamobil.domain.model.ErrorSesion
+import pe.edu.upeu.pharmamobil.domain.model.FalloSesionException
+import pe.edu.upeu.pharmamobil.domain.usecase.ObservarProductosUseCase
+import pe.edu.upeu.pharmamobil.domain.usecase.SincronizarProductosUseCase
 import pe.edu.upeu.pharmamobil.domain.usecase.RegistrarProductoUseCase
 import pe.edu.upeu.pharmamobil.platform.formatearSoles
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -40,7 +44,8 @@ class ProductoViewModelTest {
         repositorio: FakeProductoRepository = FakeProductoRepository()
     ) = ProductoViewModel(
         registrarProducto = RegistrarProductoUseCase(repositorio),
-        listarProductos = ListarProductosUseCase(repositorio)
+        observarProductos = ObservarProductosUseCase(repositorio),
+        sincronizarProductos = SincronizarProductosUseCase(repositorio)
     )
 
     @Test
@@ -55,7 +60,7 @@ class ProductoViewModelTest {
     fun muestraElInventarioConElPrecioYaFormateado() = runTest {
 
         val repositorio = FakeProductoRepository(
-            mutableListOf(
+            listOf(
                 Producto(id = 1L, nombre = "Paracetamol", precio = 12.5, stock = 5)
             )
         )
@@ -71,10 +76,10 @@ class ProductoViewModelTest {
     }
 
     @Test
-    fun pasaAFaseErrorCuandoElRepositorioFalla() = runTest {
+    fun pasaAFaseErrorSiNoSePuedeLeerLaBaseLocal() = runTest {
 
         val repositorio = FakeProductoRepository().apply {
-            fallaAlListar = IllegalStateException("Sin conexión")
+            fallaAlObservar = IllegalStateException("Sin conexión")
         }
 
         val fase = assertIs<ProductoUiState.Fase.Error>(
@@ -104,7 +109,7 @@ class ProductoViewModelTest {
     }
 
     @Test
-    fun registrarLimpiaElFormularioYRecargaElInventario() = runTest {
+    fun registrarLimpiaElFormularioYLaListaSeActualizaPorElFlow() = runTest {
 
         val viewModel = nuevoViewModel()
 
@@ -124,5 +129,78 @@ class ProductoViewModelTest {
             "Producto \"Paracetamol\" registrado correctamente",
             estado.mensajeExito
         )
+    }
+
+    @Test
+    fun alAbrirSeSuscribeYSincronizaUnaSolaVez() = runTest {
+
+        val repositorio = FakeProductoRepository()
+
+        nuevoViewModel(repositorio)
+
+        assertEquals(1, repositorio.sincronizaciones)
+    }
+
+    @Test
+    fun loQueTraeLaSincronizacionLlegaALaPantallaSinPedirLaLista() = runTest {
+
+        val repositorio = FakeProductoRepository().apply {
+            delServidor = listOf(Producto(id = 3L, nombre = "Ibuprofeno", precio = 4.5, stock = 20))
+        }
+
+        val fase = assertIs<ProductoUiState.Fase.ConProductos>(
+            nuevoViewModel(repositorio).uiState.value.fase
+        )
+
+        assertEquals("Ibuprofeno", fase.productos.single().nombre)
+    }
+
+    @Test
+    fun sinRedMuestraElAvisoYConservaLosDatosGuardados() = runTest {
+
+        val repositorio = FakeProductoRepository(
+            listOf(Producto(id = 1L, nombre = "Paracetamol", precio = 12.5, stock = 40))
+        ).apply {
+            fallaAlSincronizar = FalloSesionException(ErrorSesion.SinConexion)
+        }
+
+        val estado = nuevoViewModel(repositorio).uiState.value
+
+        assertEquals("Sin conexión: mostrando datos guardados", estado.avisoRed)
+        assertFalse(estado.sincronizando)
+        val fase = assertIs<ProductoUiState.Fase.ConProductos>(estado.fase)
+        assertEquals("Paracetamol", fase.productos.single().nombre)
+    }
+
+    @Test
+    fun alReconectarSincronizarQuitaElAviso() = runTest {
+
+        val repositorio = FakeProductoRepository().apply {
+            fallaAlSincronizar = FalloSesionException(ErrorSesion.SinConexion)
+        }
+        val viewModel = nuevoViewModel(repositorio)
+
+        repositorio.fallaAlSincronizar = null
+        viewModel.sincronizar()
+
+        assertNull(viewModel.uiState.value.avisoRed)
+        assertEquals(2, repositorio.sincronizaciones)
+    }
+
+    @Test
+    fun losProductosConIdNegativoSeMarcanComoPendientes() = runTest {
+
+        val repositorio = FakeProductoRepository(
+            listOf(
+                Producto(id = -1L, nombre = "Ibuprofeno", precio = 4.5, stock = 20),
+                Producto(id = 2L, nombre = "Paracetamol", precio = 12.5, stock = 40)
+            )
+        )
+
+        val estado = nuevoViewModel(repositorio).uiState.value
+        val fase = assertIs<ProductoUiState.Fase.ConProductos>(estado.fase)
+
+        assertEquals(1, estado.pendientes)
+        assertEquals(listOf(true, false), fase.productos.map { it.pendiente })
     }
 }

@@ -12,7 +12,7 @@ import pe.edu.upeu.pharmamobil.data.local.FakeAlmacenSeguro
 import pe.edu.upeu.pharmamobil.data.remote.crearHttpClient
 import pe.edu.upeu.pharmamobil.data.remote.jwtDePrueba
 import pe.edu.upeu.pharmamobil.data.repository.AuthRepositorioRest
-import pe.edu.upeu.pharmamobil.data.repository.ProductoRepositorioRest
+import pe.edu.upeu.pharmamobil.data.remote.ProductoApiRest
 import pe.edu.upeu.pharmamobil.domain.sesion.AvisosDeSesion
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -42,7 +42,7 @@ class DiagnosticoSesionRestTest {
         val almacen = FakeAlmacenSeguro(token)
         val engine = motor()
         val cliente = crearHttpClient(engine, almacen, esDepuracion = false)
-        val productos = ProductoRepositorioRest(cliente, AvisosDeSesion())
+        val productos = ProductoApiRest(cliente, AvisosDeSesion())
         val diagnostico = DiagnosticoSesionRest(cliente, engine, almacen)
 
         productos.listar()
@@ -75,7 +75,7 @@ class DiagnosticoSesionRestTest {
         val cliente = crearHttpClient(engine, almacen, false)
         val diagnostico = DiagnosticoSesionRest(cliente, engine, almacen)
 
-        ProductoRepositorioRest(cliente, AvisosDeSesion()).listar()
+        ProductoApiRest(cliente, AvisosDeSesion()).listar()
         AuthRepositorioRest(cliente, almacen).cerrarSesion()
         val resultado = diagnostico.peticionConElClienteActual()
 

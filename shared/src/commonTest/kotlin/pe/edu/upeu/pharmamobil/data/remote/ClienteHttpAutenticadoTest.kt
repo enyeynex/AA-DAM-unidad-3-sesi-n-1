@@ -18,7 +18,6 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.io.IOException
 import pe.edu.upeu.pharmamobil.data.local.FakeAlmacenSeguro
 import pe.edu.upeu.pharmamobil.data.repository.AuthRepositorioRest
-import pe.edu.upeu.pharmamobil.data.repository.ProductoRepositorioRest
 import pe.edu.upeu.pharmamobil.domain.model.Credenciales
 import pe.edu.upeu.pharmamobil.domain.model.ErrorSesion
 import pe.edu.upeu.pharmamobil.domain.model.FalloSesionException
@@ -69,7 +68,7 @@ class ClienteHttpAutenticadoTest {
             registro = registro
         )
         val auth = AuthRepositorioRest(cliente, almacen, ahora = { ahora })
-        val productos = ProductoRepositorioRest(cliente, avisos)
+        val productos = ProductoApiRest(cliente, avisos)
     }
 
     private fun HttpRequestData.autorizacion(): String? = headers[HttpHeaders.Authorization]

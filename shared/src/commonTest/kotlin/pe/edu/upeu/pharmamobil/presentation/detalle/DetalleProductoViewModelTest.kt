@@ -34,7 +34,8 @@ class DetalleProductoViewModelTest {
 
     private fun nuevoViewModel(
         compartidor: FakeCompartidor = FakeCompartidor(),
-        repositorio: FakeProductoRepository = FakeProductoRepository(mutableListOf(paracetamol))
+        repositorio: FakeProductoRepository = FakeProductoRepository(
+            listOf(paracetamol))
     ) = DetalleProductoViewModel(
         repository = repositorio,
         compartidor = compartidor
@@ -67,7 +68,7 @@ class DetalleProductoViewModelTest {
     fun pasaAErrorCuandoElRepositorioFalla() = runTest {
 
         val repositorio = FakeProductoRepository().apply {
-            fallaAlListar = IllegalStateException("Sin conexión")
+            fallaAlObservar = IllegalStateException("Sin conexión")
         }
 
         val viewModel = nuevoViewModel(repositorio = repositorio)
