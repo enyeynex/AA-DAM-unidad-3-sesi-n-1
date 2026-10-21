@@ -110,5 +110,7 @@ dependencies {
 tasks.withType<Test>().configureEach {
     testLogging {
         showStandardStreams = true
+        // Cada prueba aparece en la consola con su resultado (salida completa).
+        events("passed", "skipped", "failed")
     }
 }
