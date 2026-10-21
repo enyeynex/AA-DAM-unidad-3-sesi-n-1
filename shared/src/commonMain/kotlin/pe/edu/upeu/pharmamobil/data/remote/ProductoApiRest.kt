@@ -1,4 +1,4 @@
-package pe.edu.upeu.pharmamobil.data.repository
+package pe.edu.upeu.pharmamobil.data.remote
 
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -12,19 +12,19 @@ import pe.edu.upeu.pharmamobil.data.remote.dto.PaginaDto
 import pe.edu.upeu.pharmamobil.data.remote.dto.ProductoDto
 import pe.edu.upeu.pharmamobil.data.remote.dto.ProductoRequestDto
 import pe.edu.upeu.pharmamobil.data.remote.dto.aDominio
-import pe.edu.upeu.pharmamobil.data.remote.llamadaApi
 import pe.edu.upeu.pharmamobil.domain.model.Producto
-import pe.edu.upeu.pharmamobil.domain.repository.ProductoRepository
 import pe.edu.upeu.pharmamobil.domain.sesion.AvisosDeSesion
 
 /**
  * Inventario en PharmaSoft. El token no aparece aqui: lo adjunta el plugin
- * Auth del HttpClient en cada peticion.
+ * Auth del HttpClient en cada peticion. Desde la sesion 11 ya no es el
+ * repositorio de la pantalla: lo usa [pe.edu.upeu.pharmamobil.data.repository.ProductoRepositorioOffline]
+ * para sincronizar la base local.
  */
-class ProductoRepositorioRest(
+class ProductoApiRest(
     private val cliente: HttpClient,
     private val avisos: AvisosDeSesion
-) : ProductoRepository {
+) : ProductoApi {
 
     override suspend fun listar(): List<Producto> = llamadaApi(avisos) {
         cliente.get("productos") {

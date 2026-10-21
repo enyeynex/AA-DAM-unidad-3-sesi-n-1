@@ -1,0 +1,81 @@
+package pe.edu.upeu.pharmamobil.data.local
+
+import app.cash.sqldelight.coroutines.asFlow
+import app.cash.sqldelight.coroutines.mapToList
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import pe.edu.upeu.pharmamobil.db.PharmaDb
+import pe.edu.upeu.pharmamobil.domain.model.Producto
+import pe.edu.upeu.pharmamobil.db.Producto as FilaProducto
+
+/**
+ * Capa local del inventario: concentra las consultas de Producto.sq y
+ * traduce entre las filas generadas por SQLDelight y el modelo de dominio.
+ * No conoce Ktor ni los DTO de PharmaSoft.
+ */
+class ProductoLocal(base: PharmaDb) {
+
+    private val consultas = base.productoQueries
+
+    /** Emite de nuevo cada vez que la tabla producto cambia. */
+    fun observar(): Flow<List<Producto>> =
+        consultas.listarTodos()
+            .asFlow()
+            .mapToList(Dispatchers.Default)
+            .map { filas -> filas.map { it.aDominio() } }
+
+    fun pendientes(): List<Producto> =
+        consultas.listarPendientes().executeAsList()
+            .map { it.aDominio() }
+
+    /** Guarda lo creado sin red con un id negativo y la marca pendiente = 1. */
+    fun guardarPendiente(producto: Producto): Producto {
+        val menor = consultas.siguienteIdLocal().executeAsOne()
+        val local = producto.copy(id = minOf(menor, 0L) - 1L)
+        consultas.insertar(
+            local.id, local.nombre, local.precio,
+            local.stock.toLong(), 1L
+        )
+        return local
+    }
+
+    /**
+     * PharmaSoft acepto el pendiente: la fila con id local se cambia por la
+     * del servidor, con su id real. Si la bajada posterior falla, el producto
+     * ya no se vuelve a enviar y no se duplica en el servidor.
+     */
+    fun confirmarEnviado(idLocal: Long, delServidor: Producto) {
+        consultas.transaction {
+            consultas.borrarPorId(idLocal)
+            consultas.insertar(
+                delServidor.id, delServidor.nombre, delServidor.precio,
+                delServidor.stock.toLong(), 0L
+            )
+        }
+    }
+
+    /**
+     * Recibe la lista del servidor. Solo borra las filas con pendiente = 0:
+     * lo que el usuario creo sin red no se toca. Todo va en una transaccion
+     * para que el Flow emita una sola vez y la lista no parpadee.
+     */
+    fun reemplazarSincronizados(productos: List<Producto>) {
+        consultas.transaction {
+            consultas.borrarSincronizados()
+            productos.forEach {
+                consultas.insertar(
+                    it.id, it.nombre, it.precio,
+                    it.stock.toLong(), 0L
+                )
+            }
+        }
+    }
+
+    private fun FilaProducto.aDominio() = Producto(
+        id = id,
+        nombre = nombre,
+        precio = precio,
+        stock = stock.toInt()
+    )
+}
