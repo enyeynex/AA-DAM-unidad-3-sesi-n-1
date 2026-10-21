@@ -188,3 +188,46 @@ estático y el driver nativo necesita la librería SQLite del sistema.
 3. Registrar un producto: aparece de inmediato con la etiqueta «Pendiente».
 4. Desactivar el modo avión y pulsar el botón de sincronizar.
 5. En Swagger, `GET /api/v1/productos` muestra el producto con un id positivo.
+
+## Pruebas y escenarios offline (actividad autónoma)
+
+### Suite `SuiteOfflineFirstTest`
+
+Seis pruebas sobre el repositorio real: base SQLite en memoria (nueva en cada
+prueba) y el `HttpClient` de la app con `MockEngine` en lugar de PharmaSoft.
+Sin red, el motor lanza `IOException`, igual que en modo avión.
+
+| N.º | Prueba | Qué verifica |
+| --- | --- | --- |
+| 1 | Sincronizar con red | La base tiene los productos del servidor y el `Flow` emite la lista completa. |
+| 2 | Registrar sin red | El producto queda con `pendiente = 1`, id negativo, y el `Flow` lo emite. |
+| 3 | Reconectar | El pendiente llega al servidor y la fila pasa a `pendiente = 0` con el id real. |
+| 4 | Bajada sin subida | `reemplazarSincronizados` conserva lo creado sin red. |
+| 5 | Ids sin colisión | Un id local (-1) y uno del servidor (1) conviven sin sobrescribirse. |
+| 6 | Sincronizar dos veces | La cantidad de filas no cambia y el servidor recibe el pendiente una sola vez. |
+
+Además: `AntiguedadTest` (texto de antigüedad), `MigracionTest` (versión 1 → 2
+de `pharma.db`) y las pruebas de sesión vencida sin red en
+`ClienteHttpAutenticadoTest`. La consola muestra cada prueba con su resultado.
+
+### Antigüedad de los datos
+
+- Tabla `sincronizacion` de una sola fila (`Sincronizacion.sq`) con el instante
+  de la última sincronización **correcta**; se escribe solo si subir y bajar
+  terminaron bien.
+- La migración `1.sqm` agrega la tabla a quien ya tenía `pharma.db` de la
+  práctica, sin perder productos.
+- La pantalla de productos muestra «Actualizado hace 2 horas» debajo de
+  «Inventario» y se recalcula cada minuto. Con más de un día se muestra en rojo.
+- Si nunca se sincronizó: «Nunca sincronizado: conéctate para descargar el
+  inventario» y, con la base vacía, un estado vacío informativo en lugar de un
+  error.
+
+### Sesión vencida sin red
+
+Antes, un token vencido se descartaba al abrir la app y se mostraba el login,
+aunque sin red no se pudiera iniciar sesión. Ahora `sesionGuardada()` siempre
+consulta `/auth/me`: con red, el 401 cierra la sesión; sin red, la sesión se
+arma con los claims del token (`Sesion.expirada = true`), se ven los datos
+locales con un aviso y el 401 de la siguiente sincronización cierra la sesión
+al reconectar.
