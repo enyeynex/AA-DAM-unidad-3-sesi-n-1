@@ -28,6 +28,10 @@ class FakeProductoRepository(
     var sincronizaciones = 0
         private set
 
+    /** Instante que se registra en cada sincronizacion correcta. */
+    var instanteDeSincronizacion = 1_000L
+    val ultima = MutableStateFlow<Long?>(null)
+
     private var siguienteId = 1L
 
     override fun observar(): Flow<List<Producto>> =
@@ -46,5 +50,8 @@ class FakeProductoRepository(
         sincronizaciones++
         fallaAlSincronizar?.let { throw it }
         delServidor?.let { tabla.value = it }
+        ultima.value = instanteDeSincronizacion
     }
+
+    override fun ultimaSincronizacion(): Flow<Long?> = ultima
 }

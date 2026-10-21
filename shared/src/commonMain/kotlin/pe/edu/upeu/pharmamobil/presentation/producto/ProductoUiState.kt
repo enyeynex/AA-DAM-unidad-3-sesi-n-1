@@ -10,7 +10,9 @@ data class ProductoUiState(
     /** Aviso cuando la ultima sincronizacion fallo; la lista sigue visible. */
     val avisoRed: String? = null,
     /** Productos creados sin red que PharmaSoft todavia no conoce. */
-    val pendientes: Int = 0
+    val pendientes: Int = 0,
+    /** Instante (ms) de la ultima sincronizacion correcta; null si nunca hubo. */
+    val ultimaSincronizacion: Long? = null
 ) {
 
     /** Fases excluyentes del inventario: solo una puede estar activa. */

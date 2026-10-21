@@ -12,6 +12,7 @@ import pe.edu.upeu.pharmamobil.domain.model.ErrorSesion
 import pe.edu.upeu.pharmamobil.domain.model.FalloSesionException
 import pe.edu.upeu.pharmamobil.domain.usecase.ObservarProductosUseCase
 import pe.edu.upeu.pharmamobil.domain.usecase.SincronizarProductosUseCase
+import pe.edu.upeu.pharmamobil.domain.usecase.UltimaSincronizacionUseCase
 import pe.edu.upeu.pharmamobil.domain.usecase.RegistrarProductoUseCase
 import pe.edu.upeu.pharmamobil.platform.formatearSoles
 import kotlin.test.AfterTest
@@ -45,7 +46,8 @@ class ProductoViewModelTest {
     ) = ProductoViewModel(
         registrarProducto = RegistrarProductoUseCase(repositorio),
         observarProductos = ObservarProductosUseCase(repositorio),
-        sincronizarProductos = SincronizarProductosUseCase(repositorio)
+        sincronizarProductos = SincronizarProductosUseCase(repositorio),
+        ultimaSincronizacion = UltimaSincronizacionUseCase(repositorio)
     )
 
     @Test
@@ -202,5 +204,27 @@ class ProductoViewModelTest {
 
         assertEquals(1, estado.pendientes)
         assertEquals(listOf(true, false), fase.productos.map { it.pendiente })
+    }
+
+    @Test
+    fun sinRedYSinSincronizacionPreviaLaUltimaQuedaEnNull() = runTest {
+
+        val repositorio = FakeProductoRepository().apply {
+            fallaAlSincronizar = FalloSesionException(ErrorSesion.SinConexion)
+        }
+
+        val estado = nuevoViewModel(repositorio).uiState.value
+
+        assertNull(estado.ultimaSincronizacion)
+        assertEquals(ProductoUiState.Fase.SinProductos, estado.fase)
+        assertEquals("Sin conexión: mostrando datos guardados", estado.avisoRed)
+    }
+
+    @Test
+    fun unaSincronizacionCorrectaLlegaAlEstadoConSuInstante() = runTest {
+
+        val repositorio = FakeProductoRepository().apply { instanteDeSincronizacion = 42_000L }
+
+        assertEquals(42_000L, nuevoViewModel(repositorio).uiState.value.ultimaSincronizacion)
     }
 }

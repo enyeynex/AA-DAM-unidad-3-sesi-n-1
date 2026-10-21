@@ -4,6 +4,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -36,6 +37,8 @@ class ProductoRepositorioEnMemoria : ProductoRepository {
 
     /** No hay servidor: no hay nada que sincronizar. */
     override suspend fun sincronizar() = Unit
+
+    override fun ultimaSincronizacion(): Flow<Long?> = flowOf(null)
 
     private companion object {
         const val RETARDO_REGISTRO_MS = 400L

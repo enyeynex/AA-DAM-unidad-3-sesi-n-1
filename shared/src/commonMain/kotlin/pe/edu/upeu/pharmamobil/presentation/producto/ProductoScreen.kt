@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Medication
@@ -28,6 +29,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
+import kotlinx.coroutines.delay
+import pe.edu.upeu.pharmamobil.platform.milisegundosActuales
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
@@ -46,6 +50,15 @@ fun ProductoScreen(
 ) {
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    // «Hace 5 minutos» envejece aunque no cambie nada: se recalcula cada minuto.
+    val ahora by produceState(milisegundosActuales()) {
+        while (true) {
+            delay(60_000L)
+            value = milisegundosActuales()
+        }
+    }
+    val nuncaSincronizado = uiState.ultimaSincronizacion == null
 
     Column(
         modifier = modifier
@@ -78,6 +91,8 @@ fun ProductoScreen(
         EncabezadoInventario(
             fase = uiState.fase,
             sincronizando = uiState.sincronizando,
+            antiguedad = textoAntiguedad(uiState.ultimaSincronizacion, ahora),
+            antiguos = nuncaSincronizado || datosAntiguos(uiState.ultimaSincronizacion, ahora),
             onSincronizar = viewModel::sincronizar
         )
 
@@ -104,6 +119,36 @@ fun ProductoScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
+
+                // Base vacia y nunca sincronizada mientras baja la primera lista.
+                ProductoUiState.Fase.SinProductos if nuncaSincronizado && uiState.sincronizando ->
+                    Column(
+                        modifier = Modifier.align(Alignment.Center),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        CircularProgressIndicator()
+                        Text(
+                            text = "Descargando el inventario…",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                // Primera apertura sin red: no es un error, solo no hay datos aun.
+                ProductoUiState.Fase.SinProductos if nuncaSincronizado ->
+                    EstadoVacio(
+                        icono = Icons.Default.CloudDownload,
+                        titulo = "Aún no hay datos guardados",
+                        descripcion = "Este dispositivo nunca se ha sincronizado con PharmaSoft. " +
+                            "Conéctate a internet y pulsa Sincronizar para descargar el inventario.",
+                        modifier = Modifier.align(Alignment.Center),
+                        accion = {
+                            FilledTonalButton(onClick = viewModel::sincronizar) {
+                                Text("Sincronizar")
+                            }
+                        }
+                    )
 
                 ProductoUiState.Fase.SinProductos ->
                     EstadoVacio(
@@ -261,6 +306,8 @@ private fun AvisoRed(
 private fun EncabezadoInventario(
     fase: ProductoUiState.Fase,
     sincronizando: Boolean,
+    antiguedad: String,
+    antiguos: Boolean,
     onSincronizar: () -> Unit
 ) {
 
@@ -269,11 +316,23 @@ private fun EncabezadoInventario(
         verticalAlignment = Alignment.CenterVertically
     ) {
 
-        Text(
-            text = "Inventario",
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.weight(1f)
-        )
+        Column(modifier = Modifier.weight(1f)) {
+
+            Text(
+                text = "Inventario",
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            Text(
+                text = antiguedad,
+                style = MaterialTheme.typography.labelMedium,
+                color = if (antiguos) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                }
+            )
+        }
 
         if (fase is ProductoUiState.Fase.ConProductos) {
 

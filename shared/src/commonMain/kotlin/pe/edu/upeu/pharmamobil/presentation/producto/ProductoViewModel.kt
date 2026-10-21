@@ -15,6 +15,7 @@ import pe.edu.upeu.pharmamobil.domain.usecase.ObservarProductosUseCase
 import pe.edu.upeu.pharmamobil.domain.usecase.ProductoInvalidoException
 import pe.edu.upeu.pharmamobil.domain.usecase.RegistrarProductoUseCase
 import pe.edu.upeu.pharmamobil.domain.usecase.SincronizarProductosUseCase
+import pe.edu.upeu.pharmamobil.domain.usecase.UltimaSincronizacionUseCase
 
 /**
  * Offline-first (sesion 11): el ViewModel no pide la lista. Se suscribe una
@@ -24,7 +25,8 @@ import pe.edu.upeu.pharmamobil.domain.usecase.SincronizarProductosUseCase
 class ProductoViewModel(
     private val registrarProducto: RegistrarProductoUseCase,
     private val observarProductos: ObservarProductosUseCase,
-    private val sincronizarProductos: SincronizarProductosUseCase
+    private val sincronizarProductos: SincronizarProductosUseCase,
+    private val ultimaSincronizacion: UltimaSincronizacionUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProductoUiState())
@@ -49,6 +51,13 @@ class ProductoViewModel(
                             pendientes = productos.count { p -> p.id < 0 }
                         )
                     }
+                }
+        }
+        viewModelScope.launch {
+            ultimaSincronizacion()
+                .catch { /* sin el dato se muestra «nunca sincronizado» */ }
+                .collect { instante ->
+                    _uiState.update { it.copy(ultimaSincronizacion = instante) }
                 }
         }
         sincronizar()

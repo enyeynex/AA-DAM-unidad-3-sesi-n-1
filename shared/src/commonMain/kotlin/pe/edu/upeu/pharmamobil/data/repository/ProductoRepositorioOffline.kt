@@ -9,6 +9,7 @@ import pe.edu.upeu.pharmamobil.domain.model.ErrorSesion
 import pe.edu.upeu.pharmamobil.domain.model.FalloSesionException
 import pe.edu.upeu.pharmamobil.domain.model.Producto
 import pe.edu.upeu.pharmamobil.domain.repository.ProductoRepository
+import pe.edu.upeu.pharmamobil.platform.milisegundosActuales
 
 /**
  * Repositorio offline-first: la base local es la unica fuente de verdad y la
@@ -16,7 +17,9 @@ import pe.edu.upeu.pharmamobil.domain.repository.ProductoRepository
  */
 class ProductoRepositorioOffline(
     private val local: ProductoLocal,
-    private val remoto: ProductoApi
+    private val remoto: ProductoApi,
+    /** Reloj inyectable: las pruebas fijan el instante sin esperar. */
+    private val ahora: () -> Long = ::milisegundosActuales
 ) : ProductoRepository {
 
     /**
@@ -33,10 +36,16 @@ class ProductoRepositorioOffline(
         return guardado
     }
 
-    /** Primero subir, despues bajar. Al reves se pierde lo creado sin red. */
+    override fun ultimaSincronizacion(): Flow<Long?> = local.ultimaSincronizacion()
+
+    /**
+     * Primero subir, despues bajar. Al reves se pierde lo creado sin red.
+     * El instante solo se guarda si las dos partes terminaron bien.
+     */
     override suspend fun sincronizar() = sincronizando.withLock {
         subirPendientes()
         local.reemplazarSincronizados(remoto.listar())
+        local.registrarSincronizacion(ahora())
     }
 
     private suspend fun subirPendientes() {

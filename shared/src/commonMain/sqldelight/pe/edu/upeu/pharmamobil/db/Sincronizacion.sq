@@ -1,0 +1,13 @@
+-- Instante de la ultima sincronizacion correcta con PharmaSoft (actividad
+-- autonoma de la sesion 11). Tabla de una sola fila: el CHECK impide una
+-- segunda y el INSERT OR REPLACE la sobrescribe.
+CREATE TABLE sincronizacion (
+    id       INTEGER NOT NULL PRIMARY KEY CHECK (id = 1),
+    instante INTEGER NOT NULL
+);
+
+ultima:
+SELECT instante FROM sincronizacion WHERE id = 1;
+
+registrar:
+INSERT OR REPLACE INTO sincronizacion (id, instante) VALUES (1, ?);

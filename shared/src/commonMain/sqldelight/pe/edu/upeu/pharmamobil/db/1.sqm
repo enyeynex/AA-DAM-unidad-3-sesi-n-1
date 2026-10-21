@@ -1,0 +1,6 @@
+-- Migracion de la version 1 (solo producto, practica de la sesion 11) a la 2:
+-- quien ya tenia pharma.db instalado recibe la tabla nueva sin perder datos.
+CREATE TABLE sincronizacion (
+    id       INTEGER NOT NULL PRIMARY KEY CHECK (id = 1),
+    instante INTEGER NOT NULL
+);

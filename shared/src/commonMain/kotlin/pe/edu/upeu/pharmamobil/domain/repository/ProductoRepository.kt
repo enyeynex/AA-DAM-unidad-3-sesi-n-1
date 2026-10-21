@@ -17,4 +17,7 @@ interface ProductoRepository {
 
     /** Sube lo pendiente y luego trae la lista del servidor. */
     suspend fun sincronizar()
+
+    /** Instante (ms) de la ultima sincronizacion correcta; null si nunca hubo. */
+    fun ultimaSincronizacion(): Flow<Long?>
 }

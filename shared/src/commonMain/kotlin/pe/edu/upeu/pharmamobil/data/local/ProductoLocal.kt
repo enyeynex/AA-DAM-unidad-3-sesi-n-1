@@ -2,6 +2,7 @@ package pe.edu.upeu.pharmamobil.data.local
 
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
+import app.cash.sqldelight.coroutines.mapToOneOrNull
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -17,6 +18,7 @@ import pe.edu.upeu.pharmamobil.db.Producto as FilaProducto
 class ProductoLocal(base: PharmaDb) {
 
     private val consultas = base.productoQueries
+    private val sincronizaciones = base.sincronizacionQueries
 
     /** Emite de nuevo cada vez que la tabla producto cambia. */
     fun observar(): Flow<List<Producto>> =
@@ -70,6 +72,16 @@ class ProductoLocal(base: PharmaDb) {
                 )
             }
         }
+    }
+
+    /** Instante (ms) de la ultima sincronizacion correcta; null si nunca hubo. */
+    fun ultimaSincronizacion(): Flow<Long?> =
+        sincronizaciones.ultima()
+            .asFlow()
+            .mapToOneOrNull(Dispatchers.Default)
+
+    fun registrarSincronizacion(instante: Long) {
+        sincronizaciones.registrar(instante)
     }
 
     private fun FilaProducto.aDominio() = Producto(
