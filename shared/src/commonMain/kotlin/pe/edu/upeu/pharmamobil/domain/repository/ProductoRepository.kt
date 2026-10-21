@@ -1,12 +1,20 @@
 package pe.edu.upeu.pharmamobil.domain.repository
 
+import kotlinx.coroutines.flow.Flow
 import pe.edu.upeu.pharmamobil.domain.model.Producto
 
+/**
+ * Contrato offline-first del inventario (sesion 11): la pantalla ya no pide
+ * una lista, se suscribe a la base local.
+ */
 interface ProductoRepository {
 
-    /** Incorpora el producto al inventario y devuelve el producto ya identificado. */
+    /** La pantalla se suscribe una vez y se actualiza sola. */
+    fun observar(): Flow<List<Producto>>
+
+    /** Guarda en local; intenta enviar si hay conexion. */
     suspend fun registrar(producto: Producto): Producto
 
-    /** Entrega el inventario completo en el orden en que fue registrado. */
-    suspend fun listar(): List<Producto>
+    /** Sube lo pendiente y luego trae la lista del servidor. */
+    suspend fun sincronizar()
 }
