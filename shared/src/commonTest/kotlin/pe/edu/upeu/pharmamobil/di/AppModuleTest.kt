@@ -24,6 +24,7 @@ import pe.edu.upeu.pharmamobil.data.repository.ProductoRepositorioOffline
 import pe.edu.upeu.pharmamobil.db.PharmaDb
 import pe.edu.upeu.pharmamobil.domain.platform.Compartidor
 import pe.edu.upeu.pharmamobil.domain.platform.FakeCompartidor
+import pe.edu.upeu.pharmamobil.domain.platform.MonitorDeRed
 import pe.edu.upeu.pharmamobil.domain.repository.AuthRepository
 import pe.edu.upeu.pharmamobil.domain.repository.ClienteRepository
 import pe.edu.upeu.pharmamobil.domain.repository.ProductoRepository
@@ -73,6 +74,7 @@ class AppModuleTest {
         single<AlmacenSeguro> { FakeAlmacenSeguro() }
         single(ES_DEPURACION) { false }
         single<Compartidor> { FakeCompartidor() }
+        single<MonitorDeRed> { MonitorDeRed.Fijo(true) }
         single<CreadorDeDriver> { CreadorDeDriverEnMemoria() }
     }
 

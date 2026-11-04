@@ -14,7 +14,9 @@ data class ProductoUiState(
     /** Productos creados sin red que PharmaSoft rechazo al sincronizar. */
     val rechazados: Int = 0,
     /** Instante (ms) de la ultima sincronizacion correcta; null si nunca hubo. */
-    val ultimaSincronizacion: Long? = null
+    val ultimaSincronizacion: Long? = null,
+    /** «Revisar»: la lista muestra solo las filas fallidas (Guía 13). */
+    val soloFallidas: Boolean = false
 ) {
 
     /** Fases excluyentes del inventario: solo una puede estar activa. */

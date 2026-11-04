@@ -86,7 +86,7 @@ class SincronizarUseCase(
     }
 
     companion object {
-        const val MAX_INTENTOS = 5
+        const val MAX_INTENTOS = Producto.MAX_INTENTOS_ENVIO
 
         /** 1 s, 2 s, 4 s, 8 s y como máximo 16 s. */
         fun espera(intentos: Int): Long = 1_000L shl intentos.coerceIn(0, 4)

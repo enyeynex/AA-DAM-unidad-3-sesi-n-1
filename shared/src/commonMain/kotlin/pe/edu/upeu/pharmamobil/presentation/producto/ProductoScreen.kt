@@ -26,6 +26,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -34,6 +35,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import kotlinx.coroutines.delay
 import pe.edu.upeu.pharmamobil.platform.milisegundosActuales
+import pe.edu.upeu.pharmamobil.presentation.sincronizacion.SincronizacionUiState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
@@ -86,12 +88,25 @@ fun ProductoScreen(
             MensajeExito(it)
         }
 
+        val estadoSync by viewModel.estadoSync.collectAsStateWithLifecycle()
+
+        // Guía 13: conexión, cambios por enviar y antigüedad de un vistazo.
+        EstadoSincronizacionBanner(
+            estado = estadoSync,
+            antiguedad = textoAntiguedad(estadoSync.ultimaSync ?: uiState.ultimaSincronizacion, ahora)
+        )
+
         uiState.avisoRed?.let {
             AvisoRed(mensaje = it, pendientes = uiState.pendientes)
         }
 
-        if (uiState.rechazados > 0) {
-            AvisoRechazados(cantidad = uiState.rechazados)
+        estadoSync.mensajeFallidas?.let { mensaje ->
+            AvisoFallidas(
+                mensaje = mensaje,
+                revisando = uiState.soloFallidas,
+                onReintentar = viewModel::reintentarFallidas,
+                onRevisar = viewModel::alternarRevision
+            )
         }
 
         EncabezadoInventario(
@@ -368,32 +383,66 @@ private fun EncabezadoInventario(
 }
 
 
+/** «Sin conexión · 3 cambios por enviar» y «Actualizado hace 2 h». */
 @Composable
-private fun AvisoRechazados(cantidad: Int) {
+private fun EstadoSincronizacionBanner(
+    estado: SincronizacionUiState,
+    antiguedad: String
+) {
+    val conexion = estado.mensajeConexion ?: return
+    Surface(
+        shape = MaterialTheme.shapes.medium,
+        color = if (estado.conectado) {
+            MaterialTheme.colorScheme.secondaryContainer
+        } else {
+            MaterialTheme.colorScheme.tertiaryContainer
+        },
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                imageVector = if (estado.conectado) Icons.Default.Sync else Icons.Default.WifiOff,
+                contentDescription = null
+            )
+            Column {
+                Text(text = conexion, style = MaterialTheme.typography.bodyMedium)
+                Text(text = antiguedad, style = MaterialTheme.typography.labelMedium)
+            }
+        }
+    }
+}
 
+
+/** Filas que agotaron sus intentos o fueron rechazadas: el mensaje ofrece una acción. */
+@Composable
+private fun AvisoFallidas(
+    mensaje: String,
+    revisando: Boolean,
+    onReintentar: () -> Unit,
+    onRevisar: () -> Unit
+) {
     Surface(
         shape = MaterialTheme.shapes.medium,
         color = MaterialTheme.colorScheme.errorContainer,
         contentColor = MaterialTheme.colorScheme.onErrorContainer,
         modifier = Modifier.fillMaxWidth()
     ) {
-
-        Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-
-            Icon(imageVector = Icons.Default.ErrorOutline, contentDescription = null)
-
-            Text(
-                text = if (cantidad == 1) {
-                    "PharmaSoft rechazó 1 producto creado sin conexión. Revisa el motivo y descártalo."
-                } else {
-                    "PharmaSoft rechazó $cantidad productos creados sin conexión. Revisa el motivo y descártalos."
-                },
-                style = MaterialTheme.typography.bodyMedium
-            )
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Icon(imageVector = Icons.Default.ErrorOutline, contentDescription = null)
+                Text(text = mensaje, style = MaterialTheme.typography.bodyMedium)
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = onReintentar) { Text("Reintentar ahora") }
+                TextButton(onClick = onRevisar) { Text(if (revisando) "Ver todo" else "Revisar") }
+            }
         }
     }
 }
@@ -449,9 +498,17 @@ private fun ProductoItem(
 
                 producto.rechazo?.let { motivo ->
                     Text(
-                        text = "Rechazado: $motivo",
+                        text = "No enviado: $motivo",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error
+                    )
+                }
+
+                producto.estadoEnvio?.let { estado ->
+                    Text(
+                        text = estado,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }

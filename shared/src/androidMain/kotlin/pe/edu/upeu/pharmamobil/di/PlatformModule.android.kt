@@ -11,10 +11,14 @@ import pe.edu.upeu.pharmamobil.data.local.CreadorDeDriverAndroid
 import pe.edu.upeu.pharmamobil.data.local.AlmacenSeguro
 import pe.edu.upeu.pharmamobil.data.local.AlmacenSeguroAndroid
 import pe.edu.upeu.pharmamobil.domain.platform.Compartidor
+import pe.edu.upeu.pharmamobil.domain.platform.MonitorDeRed
+import pe.edu.upeu.pharmamobil.platform.MonitorDeRedAndroid
 import pe.edu.upeu.pharmamobil.platform.CompartidorAndroid
 
 actual val platformModule: Module = module {
     single<Compartidor> { CompartidorAndroid(androidContext()) }
+    // Guía 13: conexión para el indicador y la sincronización automática.
+    single<MonitorDeRed> { MonitorDeRedAndroid(androidContext()) }
     single<AlmacenSeguro> { AlmacenSeguroAndroid(androidContext()) }
     // Base local offline-first (sesion 11).
     single<CreadorDeDriver> { CreadorDeDriverAndroid(androidContext()) }

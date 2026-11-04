@@ -33,7 +33,14 @@ data class Producto(
     val requiereReposicion: Boolean
         get() = stock < STOCK_MINIMO
 
+    /** Pendiente que agotó sus intentos por fallos transitorios (Guía 13). */
+    val agotoIntentos: Boolean
+        get() = rechazo == null && intentos >= MAX_INTENTOS_ENVIO
+
     companion object {
         const val STOCK_MINIMO = 10
+
+        /** Máximo de intentos de envío por fila antes de marcarla fallida. */
+        const val MAX_INTENTOS_ENVIO = 5
     }
 }

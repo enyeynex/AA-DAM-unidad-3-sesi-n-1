@@ -13,7 +13,9 @@ data class ProductoUi(
     /** Id negativo: el producto se creo sin red y aun no existe en PharmaSoft. */
     val pendiente: Boolean = false,
     /** Motivo si PharmaSoft rechazo el producto; se muestra con «Descartar». */
-    val rechazo: String? = null
+    val rechazo: String? = null,
+    /** Pendiente con reintentos: «Reintento 2 de 5 · Servicio no disponible». */
+    val estadoEnvio: String? = null
 )
 
 /**
@@ -27,6 +29,15 @@ fun Producto.aUi(): ProductoUi = ProductoUi(
     precio = formatearSoles(precio),
     stock = "$stock u.",
     requiereReposicion = requiereReposicion,
-    pendiente = id < 0 && rechazo == null,
-    rechazo = rechazo
+    pendiente = id < 0 && rechazo == null && !agotoIntentos,
+    rechazo = rechazo ?: if (agotoIntentos) {
+        "No se pudo enviar tras ${Producto.MAX_INTENTOS_ENVIO} intentos: ${ultimoError ?: "error desconocido"}"
+    } else {
+        null
+    },
+    estadoEnvio = if (rechazo == null && !agotoIntentos && intentos > 0) {
+        "Reintento $intentos de ${Producto.MAX_INTENTOS_ENVIO} · ${ultimoError ?: ""}".trimEnd(' ', '·')
+    } else {
+        null
+    }
 )
