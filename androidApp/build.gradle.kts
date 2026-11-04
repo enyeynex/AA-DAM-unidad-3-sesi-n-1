@@ -3,6 +3,10 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeCompiler)
+    // Lee androidApp/google-services.json (proyecto de la consola de Firebase).
+    alias(libs.plugins.googleServices)
+    // Sin este plugin Crashlytics no tiene build ID y la app se cierra al iniciar.
+    alias(libs.plugins.firebaseCrashlytics)
 }
 
 kotlin {

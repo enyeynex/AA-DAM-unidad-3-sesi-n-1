@@ -82,6 +82,9 @@ kotlin {
             // Base local offline-first: tablas y consultas tipadas, observables como Flow.
             implementation(libs.sqldelight.runtime)
             implementation(libs.sqldelight.coroutines)
+            // Guía 13: Firebase solo se usa en data/firebase, detrás de interfaces del dominio.
+            implementation(libs.firebase.crashlytics)
+            implementation(libs.firebase.messaging)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

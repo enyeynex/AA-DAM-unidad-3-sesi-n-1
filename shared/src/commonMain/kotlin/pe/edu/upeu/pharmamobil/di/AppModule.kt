@@ -15,7 +15,11 @@ import pe.edu.upeu.pharmamobil.data.remote.ProductoApiRest
 import pe.edu.upeu.pharmamobil.data.remote.crearHttpClient
 import pe.edu.upeu.pharmamobil.data.repository.AuthRepositorioRest
 import pe.edu.upeu.pharmamobil.data.repository.ClienteRepositorioRest
+import pe.edu.upeu.pharmamobil.data.firebase.TelemetriaFirebase
+import pe.edu.upeu.pharmamobil.data.firebase.TokenPushFirebase
 import pe.edu.upeu.pharmamobil.data.repository.EnvioRepositorioRest
+import pe.edu.upeu.pharmamobil.domain.port.ServicioPush
+import pe.edu.upeu.pharmamobil.domain.port.Telemetria
 import pe.edu.upeu.pharmamobil.data.repository.ProductoRepositorioOffline
 import pe.edu.upeu.pharmamobil.domain.repository.ProductoLocalRepository
 import pe.edu.upeu.pharmamobil.domain.repository.ProductoRemotoRepository
@@ -61,7 +65,10 @@ val dataModule = module {
     single<ProductoApi> { ProductoApiRest(get(), get()) }
     single<ProductoRemotoRepository> { EnvioRepositorioRest(get()) }
     // single: su Mutex debe ser el mismo para el init, el registro y el botón.
-    single { SincronizarUseCase(get(), get()) }
+    single { SincronizarUseCase(local = get(), remoto = get(), telemetria = get()) }
+    // Guía 13: el SDK de Firebase solo existe detrás de estas interfaces.
+    single<Telemetria> { TelemetriaFirebase() }
+    single<ServicioPush> { TokenPushFirebase() }
     single<ProductoRepository> { ProductoRepositorioOffline(get<ProductoLocal>(), get<SincronizarUseCase>()) }
     single<ClienteRepository> { ClienteRepositorioRest(get(), get()) }
     // Herramienta de pruebas de la actividad autonoma (solo se ofrece en depuracion).
@@ -86,7 +93,7 @@ val domainModule = module {
 val presentationModule = module {
     viewModel { ProductoViewModel(get(), get(), get(), get(), get(), get(), get()) }
     // GestorPermisos y Notificador los aporta cada plataforma.
-    viewModel { PermisosViewModel(get(), get(), get()) }
+    viewModel { PermisosViewModel(get(), get(), get(), get()) }
     viewModel { ClienteViewModel(get(), get()) }
     // El Compartidor lo aporta el platformModule de cada plataforma.
     viewModel { DetalleProductoViewModel(get(), get()) }

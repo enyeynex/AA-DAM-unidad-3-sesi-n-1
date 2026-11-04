@@ -12,12 +12,15 @@ import pe.edu.upeu.pharmamobil.domain.permiso.EstadoPermiso
 import pe.edu.upeu.pharmamobil.domain.permiso.GestorPermisos
 import pe.edu.upeu.pharmamobil.domain.permiso.Permiso
 import pe.edu.upeu.pharmamobil.domain.port.Notificador
+import pe.edu.upeu.pharmamobil.domain.port.ServicioPush
 import pe.edu.upeu.pharmamobil.domain.usecase.ObservarProductosUseCase
 
 data class PermisosUiState(
     val estado: EstadoPermiso? = null,
     val solicitando: Boolean = false,
-    val mensaje: String? = null
+    val mensaje: String? = null,
+    /** Inicio del token de Firebase Messaging, como evidencia de la integración. */
+    val tokenPush: String? = null
 )
 
 /**
@@ -27,7 +30,8 @@ data class PermisosUiState(
 class PermisosViewModel(
     private val gestor: GestorPermisos,
     private val notificador: Notificador,
-    private val observarProductos: ObservarProductosUseCase
+    private val observarProductos: ObservarProductosUseCase,
+    private val servicioPush: ServicioPush? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PermisosUiState())
@@ -40,7 +44,12 @@ class PermisosViewModel(
     /** Al volver de Ajustes el usuario pudo cambiar el permiso: se consulta de nuevo. */
     fun refrescar() {
         viewModelScope.launch {
-            _uiState.update { it.copy(estado = gestor.estado(Permiso.NOTIFICACIONES)) }
+            val estado = gestor.estado(Permiso.NOTIFICACIONES)
+            _uiState.update { it.copy(estado = estado) }
+            if (estado == EstadoPermiso.Concedido && _uiState.value.tokenPush == null) {
+                val token = servicioPush?.token()
+                _uiState.update { it.copy(tokenPush = token?.take(12)?.let { inicio -> "$inicio…" }) }
+            }
         }
     }
 

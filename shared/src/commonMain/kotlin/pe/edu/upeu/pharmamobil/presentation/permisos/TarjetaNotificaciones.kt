@@ -51,6 +51,9 @@ fun TarjetaNotificaciones(viewModel: PermisosViewModel, modifier: Modifier = Mod
                 EstadoPermiso.Concedido -> {
                     Text("Activadas. Te avisaremos cuando un producto necesite reposición.")
                     OutlinedButton(onClick = viewModel::probarNotificacion) { Text("Probar notificación") }
+                    uiState.tokenPush?.let {
+                        Text("Firebase Messaging · token $it", style = MaterialTheme.typography.labelSmall)
+                    }
                 }
                 EstadoPermiso.Denegado -> {
                     // Se explica ANTES de pedir el permiso.

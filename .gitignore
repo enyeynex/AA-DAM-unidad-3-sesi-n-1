@@ -17,3 +17,6 @@ captures
 !*.xcworkspace/contents.xcworkspacedata
 **/xcshareddata/WorkspaceSettings.xcsettings
 node_modules/
+
+# Guía 13: configuración de Firebase de cada estudiante (se descarga de la consola).
+androidApp/google-services.json

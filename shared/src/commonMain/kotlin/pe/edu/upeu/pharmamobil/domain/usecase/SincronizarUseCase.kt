@@ -6,6 +6,7 @@ import kotlinx.coroutines.sync.withLock
 import pe.edu.upeu.pharmamobil.domain.model.Producto
 import pe.edu.upeu.pharmamobil.domain.model.ResultadoEnvio
 import pe.edu.upeu.pharmamobil.domain.model.ResumenSync
+import pe.edu.upeu.pharmamobil.domain.port.Telemetria
 import pe.edu.upeu.pharmamobil.domain.repository.ProductoLocalRepository
 import pe.edu.upeu.pharmamobil.domain.repository.ProductoRemotoRepository
 import pe.edu.upeu.pharmamobil.platform.milisegundosActuales
@@ -34,7 +35,9 @@ class SincronizarUseCase(
     private val local: ProductoLocalRepository,
     private val remoto: ProductoRemotoRepository,
     private val ahora: () -> Long = ::milisegundosActuales,
-    private val esperar: suspend (Long) -> Unit = { delay(it) }
+    private val esperar: suspend (Long) -> Unit = { delay(it) },
+    /** Registro técnico de los envíos fallidos; nunca recibe el token ni datos personales. */
+    private val telemetria: Telemetria? = null
 ) {
 
     private val candado = Mutex()
@@ -57,6 +60,10 @@ class SincronizarUseCase(
                     is ResultadoEnvio.Permanente -> {
                         local.marcarFallida(fila.id, r.motivo)
                         fallidas++
+                        telemetria?.registrarError(
+                            EnvioFallido(r.motivo),
+                            mapOf("operacion" to "sincronizar", "tipo" to "permanente", "fila" to fila.id.toString())
+                        )
                         break
                     }
                     is ResultadoEnvio.Transitorio -> {
@@ -65,6 +72,10 @@ class SincronizarUseCase(
                         intentos++
                         if (intentos >= MAX_INTENTOS) {
                             fallidas++
+                            telemetria?.registrarError(
+                                EnvioFallido(r.motivo),
+                                mapOf("operacion" to "sincronizar", "tipo" to "intentos_agotados", "fila" to fila.id.toString())
+                            )
                             break
                         }
                         esperar(espera(intentos - 1))
@@ -84,6 +95,9 @@ class SincronizarUseCase(
         local.reiniciarIntentos(MAX_INTENTOS)
         return invoke()
     }
+
+    /** Error que se envía a la telemetría: solo el motivo técnico. */
+    class EnvioFallido(motivo: String) : Exception(motivo)
 
     companion object {
         const val MAX_INTENTOS = Producto.MAX_INTENTOS_ENVIO
