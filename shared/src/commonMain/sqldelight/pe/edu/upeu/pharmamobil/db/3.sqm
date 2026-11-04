@@ -1,0 +1,3 @@
+-- Versión 3 a 4 (Guía 13, paso 2): estado de envío por fila pendiente.
+ALTER TABLE producto ADD COLUMN intentos INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE producto ADD COLUMN ultimoError TEXT;

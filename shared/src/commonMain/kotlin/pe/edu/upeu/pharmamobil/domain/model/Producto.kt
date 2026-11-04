@@ -6,7 +6,11 @@ data class Producto(
     val precio:Double,
     val stock: Int,
     /** Motivo si PharmaSoft rechazo este producto creado sin red; null si no. */
-    val rechazo: String? = null
+    val rechazo: String? = null,
+    /** Intentos de envío fallidos por un error transitorio (Guía 13). */
+    val intentos: Int = 0,
+    /** Último error transitorio al enviar; null si no hubo. */
+    val ultimoError: String? = null
 ) {
 
 

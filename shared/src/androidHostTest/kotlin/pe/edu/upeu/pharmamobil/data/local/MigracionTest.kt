@@ -8,8 +8,9 @@ import kotlin.test.assertNull
 
 /**
  * Quien instalo la app en la practica tiene pharma.db en la version 1 (solo la
- * tabla producto). Las migraciones 1.sqm (tabla sincronizacion) y 2.sqm
- * (columna rechazo) deben aplicarse sin perder los productos guardados.
+ * tabla producto). Las migraciones 1.sqm (tabla sincronizacion), 2.sqm
+ * (columna rechazo) y 3.sqm (intentos y ultimoError, Guía 13) deben
+ * aplicarse sin perder los productos guardados.
  */
 class MigracionTest {
 
@@ -27,10 +28,15 @@ class MigracionTest {
         PharmaDb.Schema.migrate(driver, oldVersion = 1, newVersion = PharmaDb.Schema.version)
         val base = PharmaDb(driver)
 
-        assertEquals(3L, PharmaDb.Schema.version)
+        assertEquals(4L, PharmaDb.Schema.version)
         val pendiente = base.productoQueries.listarPendientes().executeAsOne()
         assertEquals("Ibuprofeno", pendiente.nombre)
         assertNull(pendiente.rechazo, "2.sqm agrego la columna rechazo vacia")
+        assertEquals(0L, pendiente.intentos, "3.sqm agrego intentos con 0")
+        assertNull(pendiente.ultimoError)
+        base.productoQueries.sumarIntento("Sin conexión", -1L)
+        assertEquals(1L, base.productoQueries.contarPendientes(5L).executeAsOne())
+        assertEquals(0L, base.productoQueries.contarFallidas(5L).executeAsOne())
         assertNull(base.sincronizacionQueries.ultima().executeAsOneOrNull())
         base.sincronizacionQueries.registrar(5_000L)
         assertEquals(5_000L, base.sincronizacionQueries.ultima().executeAsOne())

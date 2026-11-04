@@ -2,6 +2,7 @@ package pe.edu.upeu.pharmamobil.data.local
 
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
+import app.cash.sqldelight.coroutines.mapToOne
 import app.cash.sqldelight.coroutines.mapToOneOrNull
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -87,6 +88,36 @@ class ProductoLocal(base: PharmaDb) {
         consultas.descartarPendiente(id)
     }
 
+    /** Pendientes que todavía pueden enviarse: sin rechazo y con intentos disponibles. */
+    fun pendientesPorEnviar(maxIntentos: Int): List<Producto> =
+        consultas.pendientesPorEnviar(maxIntentos.toLong()).executeAsList()
+            .map { it.aDominio() }
+
+    fun observarPendientes(maxIntentos: Int): Flow<Int> =
+        consultas.contarPendientes(maxIntentos.toLong())
+            .asFlow()
+            .mapToOne(Dispatchers.Default)
+            .map { it.toInt() }
+
+    fun observarFallidas(maxIntentos: Int): Flow<Int> =
+        consultas.contarFallidas(maxIntentos.toLong())
+            .asFlow()
+            .mapToOne(Dispatchers.Default)
+            .map { it.toInt() }
+
+    fun contarPendientes(maxIntentos: Int): Int =
+        consultas.contarPendientes(maxIntentos.toLong()).executeAsOne().toInt()
+
+    /** Fallo transitorio: suma un intento y recuerda el motivo. */
+    fun sumarIntento(id: Long, motivo: String) {
+        consultas.sumarIntento(motivo, id)
+    }
+
+    /** «Reintentar ahora»: devuelve a la cola las filas que agotaron sus intentos. */
+    fun reiniciarIntentos(maxIntentos: Int) {
+        consultas.reiniciarIntentos(maxIntentos.toLong())
+    }
+
     /** Instante (ms) de la ultima sincronizacion correcta; null si nunca hubo. */
     fun ultimaSincronizacion(): Flow<Long?> =
         sincronizaciones.ultima()
@@ -102,6 +133,8 @@ class ProductoLocal(base: PharmaDb) {
         nombre = nombre,
         precio = precio,
         stock = stock.toInt(),
-        rechazo = rechazo
+        rechazo = rechazo,
+        intentos = intentos.toInt(),
+        ultimoError = ultimoError
     )
 }
