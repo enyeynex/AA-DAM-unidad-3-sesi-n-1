@@ -62,7 +62,9 @@ private val OPCIONES = listOf(
 fun InicioScreen(
     onNavegar: (Screen) -> Unit,
     modifier: Modifier = Modifier,
-    puedeVerClientes: Boolean = true
+    puedeVerClientes: Boolean = true,
+    /** Tarjeta de permisos (Guía 13); la arma App con su ViewModel. */
+    avisos: @Composable () -> Unit = {}
 ) {
 
     Column(
@@ -74,6 +76,8 @@ fun InicioScreen(
     ) {
 
         Portada()
+
+        avisos()
 
         Text(
             text = "Qué puedes hacer",

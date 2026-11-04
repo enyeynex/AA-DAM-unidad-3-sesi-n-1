@@ -60,6 +60,7 @@ import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import pe.edu.upeu.pharmamobil.di.ES_DEPURACION
 import pe.edu.upeu.pharmamobil.presentation.diagnostico.DiagnosticoScreen
+import pe.edu.upeu.pharmamobil.presentation.permisos.TarjetaNotificaciones
 import pe.edu.upeu.pharmamobil.presentation.diagnostico.DiagnosticoViewModel
 
 import pe.edu.upeu.pharmamobil.domain.model.Sesion
@@ -367,7 +368,10 @@ private fun PantallaPrincipal(
                                 onNavegar = { destino ->
                                     pantallaActual = destino
                                 },
-                                puedeVerClientes = puedeVerClientes
+                                puedeVerClientes = puedeVerClientes,
+                                avisos = {
+                                    TarjetaNotificaciones(viewModel = koinViewModel(key = "permisos-$idSesion"))
+                                }
                             )
 
                         Screen.Productos -> {

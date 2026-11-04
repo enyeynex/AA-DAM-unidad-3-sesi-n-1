@@ -11,6 +11,10 @@ import pe.edu.upeu.pharmamobil.data.local.AlmacenSeguroIos
 import pe.edu.upeu.pharmamobil.domain.platform.Compartidor
 import pe.edu.upeu.pharmamobil.domain.platform.MonitorDeRed
 import pe.edu.upeu.pharmamobil.platform.MonitorDeRedIos
+import pe.edu.upeu.pharmamobil.domain.permiso.GestorPermisos
+import pe.edu.upeu.pharmamobil.domain.port.Notificador
+import pe.edu.upeu.pharmamobil.permiso.GestorPermisosIos
+import pe.edu.upeu.pharmamobil.permiso.NotificadorIos
 import pe.edu.upeu.pharmamobil.platform.CompartidorIos
 import kotlin.experimental.ExperimentalNativeApi
 
@@ -18,6 +22,8 @@ import kotlin.experimental.ExperimentalNativeApi
 actual val platformModule: Module = module {
     single<Compartidor> { CompartidorIos() }
     single<MonitorDeRed> { MonitorDeRedIos() }
+    single<GestorPermisos> { GestorPermisosIos() }
+    single<Notificador> { NotificadorIos() }
     single<AlmacenSeguro> { AlmacenSeguroIos() }
     // Base local offline-first (sesion 11).
     single<CreadorDeDriver> { CreadorDeDriverIos() }

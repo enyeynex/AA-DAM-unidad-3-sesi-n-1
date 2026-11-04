@@ -40,6 +40,7 @@ import pe.edu.upeu.pharmamobil.presentation.cliente.ClienteViewModel
 import pe.edu.upeu.pharmamobil.presentation.detalle.DetalleProductoViewModel
 import pe.edu.upeu.pharmamobil.presentation.diagnostico.DiagnosticoViewModel
 import pe.edu.upeu.pharmamobil.presentation.producto.ProductoViewModel
+import pe.edu.upeu.pharmamobil.presentation.permisos.PermisosViewModel
 import pe.edu.upeu.pharmamobil.presentation.sesion.SesionViewModel
 
 /** Calificador del Boolean que dice si la app es una compilacion de depuracion. */
@@ -84,6 +85,8 @@ val domainModule = module {
 
 val presentationModule = module {
     viewModel { ProductoViewModel(get(), get(), get(), get(), get(), get(), get()) }
+    // GestorPermisos y Notificador los aporta cada plataforma.
+    viewModel { PermisosViewModel(get(), get(), get()) }
     viewModel { ClienteViewModel(get(), get()) }
     // El Compartidor lo aporta el platformModule de cada plataforma.
     viewModel { DetalleProductoViewModel(get(), get()) }
