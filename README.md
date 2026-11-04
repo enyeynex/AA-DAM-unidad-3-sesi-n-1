@@ -248,3 +248,67 @@ siempre y la lista nunca volvía a bajar. Corrección:
 - `registrar()` ahora devuelve el producto como quedó (id del servidor, id local
   o rechazado), así el mensaje de la pantalla corresponde a lo que pasó.
 - Pruebas: `RechazoAlSincronizarTest`.
+
+## Proyecto integrador (sesión 13)
+
+Rama `feature/integrador-13`, creada desde `develop`, con un commit por paso de la Guía 13.
+La tabla de huecos del recorrido completo está en `docs/huecos-integrador-13.md`.
+
+### Sincronización refinada
+
+- **Estado por fila** (`Producto.sq`, migración `3.sqm`, base v4): `intentos` y `ultimoError`.
+  `contarPendientes` y `contarFallidas` son consultas observables.
+- **Transitorio o permanente** (`domain/model/ResultadoEnvio.kt`). La traducción vive en la capa de
+  datos (`data/repository/EnvioRepositorioRest.kt`), que usa el `codigo` de `ErrorServidorException`.
+
+  | Respuesta | Resultado | Qué pasa |
+  | --- | --- | --- |
+  | Sin conexión | Transitorio | Se deja de subir y no cuenta como intento: la petición no salió del teléfono. |
+  | Tiempo agotado, 5xx | Transitorio | Suma intento y reintenta con espera de 1 s, 2 s, 4 s y 8 s, hasta 5 intentos. |
+  | 400, 404, 409, 403 | Permanente | La fila queda fallida con su motivo y no se reintenta sola. |
+  | 401 | Permanente («Sesión vencida») | La sesión se cierra; tras volver a entrar, «Reintentar ahora». |
+
+- **Caso de uso** `domain/usecase/SincronizarUseCase.kt`: primero sube y después baja, con un
+  `Mutex` para no enviar dos veces la misma fila. No conoce códigos HTTP.
+- **Idempotencia:** PharmaSoft no acepta una clave de operación. Si un POST llega pero su respuesta
+  se pierde, reintentarlo puede duplicar el producto. El servicio lo rechaza con 409 por nombre
+  repetido, así que queda como fallido y visible, y la decisión la toma el usuario.
+
+### Estado visible
+
+`SincronizacionUiState` (enCurso, pendientes, fallidas, ultimaSync, conectado) se arma con `combine`
+de las consultas observables y de `MonitorDeRed` (ConnectivityManager en Android, NWPathMonitor en
+iOS). La pantalla de productos muestra «Sin conexión · 3 cambios por enviar» y «Actualizado hace 2 h».
+Si hay fallidas, muestra «2 cambios no se pudieron enviar» con **Reintentar ahora** y **Revisar**.
+Al recuperar la red se sincroniza sola.
+
+### Permisos
+
+`domain/permiso/GestorPermisos.kt` declara la interfaz. Android: `androidApp/.../permiso/`
+(`GestorPermisosAndroid`, `PuentePermisos` registrado en `MainActivity.onCreate`). iOS:
+`GestorPermisosIos` con `UNUserNotificationCenter`. El permiso real es `POST_NOTIFICATIONS`
+(Android 13+), declarado en el manifiesto. iOS no necesita clave en Info.plist para notificaciones.
+
+| Situación | Estado | La tarjeta «Notificaciones de stock bajo» muestra |
+| --- | --- | --- |
+| Nunca se pidió o se negó una vez | Denegado | Explicación y botón **Activar** |
+| Negado definitivamente | DenegadoParaSiempre | «Las desactivaste…» y **Abrir Ajustes** |
+| Concedido | Concedido | «Activadas» y **Probar notificación** |
+
+### Firebase
+
+1. En https://console.firebase.google.com crea el proyecto y registra la app Android con el
+   paquete `pe.edu.upeu.pharmamobil`.
+2. Descarga `google-services.json` en `androidApp/`. No se versiona: está en `.gitignore`.
+3. Habilita Crashlytics en la consola.
+
+El SDK de GitLive (`dev.gitlive:firebase-crashlytics` y `firebase-messaging` 2.7.0) solo aparece en
+`data/firebase/`: `TelemetriaFirebase` implementa el puerto `Telemetria` y `TokenPushFirebase`
+implementa `ServicioPush`. La telemetría registra los envíos fallidos con contexto técnico
+(operación, tipo, fila), nunca el token ni datos personales.
+
+### Pruebas
+
+`SincronizacionTest` (MockEngine + SQLite en memoria), `SincronizacionUiStateTest`,
+`PermisosViewModelTest` (gestor de permisos falso y la tabla de los tres estados) y `MigracionTest`
+(v1 → v4).
