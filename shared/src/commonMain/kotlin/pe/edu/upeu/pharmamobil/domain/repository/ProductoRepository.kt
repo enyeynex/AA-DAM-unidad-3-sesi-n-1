@@ -2,6 +2,7 @@ package pe.edu.upeu.pharmamobil.domain.repository
 
 import kotlinx.coroutines.flow.Flow
 import pe.edu.upeu.pharmamobil.domain.model.Producto
+import pe.edu.upeu.pharmamobil.domain.model.ResumenSync
 
 /**
  * Contrato offline-first del inventario (sesion 11): la pantalla ya no pide
@@ -16,7 +17,16 @@ interface ProductoRepository {
     suspend fun registrar(producto: Producto): Producto
 
     /** Sube lo pendiente y luego trae la lista del servidor. */
-    suspend fun sincronizar()
+    suspend fun sincronizar(): ResumenSync
+
+    /** «Reintentar ahora»: devuelve las filas fallidas a la cola y sincroniza. */
+    suspend fun reintentarFallidas(): ResumenSync
+
+    /** Pendientes que aún se enviarán (consulta observable). */
+    fun observarPendientes(): Flow<Int>
+
+    /** Filas que agotaron sus intentos o que PharmaSoft rechazó (consulta observable). */
+    fun observarFallidas(): Flow<Int>
 
     /** Instante (ms) de la ultima sincronizacion correcta; null si nunca hubo. */
     fun ultimaSincronizacion(): Flow<Long?>

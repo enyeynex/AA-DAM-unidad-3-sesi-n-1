@@ -3,6 +3,7 @@ package pe.edu.upeu.pharmamobil.data.remote
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.plugins.DefaultRequest
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.auth.Auth
 import io.ktor.client.plugins.auth.providers.BearerTokens
 import io.ktor.client.plugins.auth.providers.bearer
@@ -37,6 +38,12 @@ fun crearHttpClient(
 
     // Un 4xx o 5xx se lanza como ResponseException y lo traduce llamadaApi.
     expectSuccess = true
+
+    // Sin límite, una red lenta dejaría la sincronización colgada (Guía 13).
+    install(HttpTimeout) {
+        connectTimeoutMillis = 10_000
+        requestTimeoutMillis = 15_000
+    }
 
     install(ContentNegotiation) {
         json(JsonPharma)

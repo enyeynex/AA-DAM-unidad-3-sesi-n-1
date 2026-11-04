@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.update
 import pe.edu.upeu.pharmamobil.domain.model.Producto
+import pe.edu.upeu.pharmamobil.domain.model.ResumenSync
 import pe.edu.upeu.pharmamobil.domain.repository.ProductoRepository
 
 /**
@@ -46,12 +47,29 @@ class FakeProductoRepository(
         return guardado
     }
 
-    override suspend fun sincronizar() {
+    /** Contadores observables que la pantalla muestra (Guía 13). */
+    val pendientes = MutableStateFlow(0)
+    val fallidas = MutableStateFlow(0)
+    var reintentos = 0
+        private set
+
+    override suspend fun sincronizar(): ResumenSync {
         sincronizaciones++
         fallaAlSincronizar?.let { throw it }
         delServidor?.let { tabla.value = it }
         ultima.value = instanteDeSincronizacion
+        return ResumenSync(pendientes = pendientes.value)
     }
+
+    override suspend fun reintentarFallidas(): ResumenSync {
+        reintentos++
+        fallidas.value = 0
+        return sincronizar()
+    }
+
+    override fun observarPendientes(): Flow<Int> = pendientes
+
+    override fun observarFallidas(): Flow<Int> = fallidas
 
     override fun ultimaSincronizacion(): Flow<Long?> = ultima
 

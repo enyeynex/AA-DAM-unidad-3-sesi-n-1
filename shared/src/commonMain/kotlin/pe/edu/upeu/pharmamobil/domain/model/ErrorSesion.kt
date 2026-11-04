@@ -6,6 +6,8 @@ sealed interface ErrorSesion {
     data object SesionExpirada : ErrorSesion
     data object SinPermiso : ErrorSesion
     data object SinConexion : ErrorSesion
+    /** La petición salió pero el servicio no respondió a tiempo (Guía 13). */
+    data object TiempoAgotado : ErrorSesion
 }
 
 /**
@@ -23,4 +25,5 @@ fun mensajeDe(error: ErrorSesion): String = when (error) {
     ErrorSesion.SesionExpirada -> "Tu sesión expiró. Vuelve a iniciar sesión"
     ErrorSesion.SinPermiso -> "No tienes permiso para realizar esta acción"
     ErrorSesion.SinConexion -> "No se pudo conectar con PharmaSoft. Revisa que el servidor esté en ejecución"
+    ErrorSesion.TiempoAgotado -> "PharmaSoft tardó demasiado en responder. Se reintentará"
 }

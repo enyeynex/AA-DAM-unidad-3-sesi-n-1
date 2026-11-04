@@ -15,7 +15,11 @@ import pe.edu.upeu.pharmamobil.data.remote.ProductoApiRest
 import pe.edu.upeu.pharmamobil.data.remote.crearHttpClient
 import pe.edu.upeu.pharmamobil.data.repository.AuthRepositorioRest
 import pe.edu.upeu.pharmamobil.data.repository.ClienteRepositorioRest
+import pe.edu.upeu.pharmamobil.data.repository.EnvioRepositorioRest
 import pe.edu.upeu.pharmamobil.data.repository.ProductoRepositorioOffline
+import pe.edu.upeu.pharmamobil.domain.repository.ProductoLocalRepository
+import pe.edu.upeu.pharmamobil.domain.repository.ProductoRemotoRepository
+import pe.edu.upeu.pharmamobil.domain.usecase.SincronizarUseCase
 import pe.edu.upeu.pharmamobil.domain.repository.AuthRepository
 import pe.edu.upeu.pharmamobil.domain.repository.ClienteRepository
 import pe.edu.upeu.pharmamobil.domain.repository.ProductoRepository
@@ -51,8 +55,12 @@ val dataModule = module {
     // Offline-first: la pantalla lee de PharmaDb y la red solo la sincroniza.
     single { PharmaDb(get<CreadorDeDriver>().crear()) }
     single { ProductoLocal(get()) }
+    single<ProductoLocalRepository> { get<ProductoLocal>() }
     single<ProductoApi> { ProductoApiRest(get(), get()) }
-    single<ProductoRepository> { ProductoRepositorioOffline(get(), get()) }
+    single<ProductoRemotoRepository> { EnvioRepositorioRest(get()) }
+    // single: su Mutex debe ser el mismo para el init, el registro y el botón.
+    single { SincronizarUseCase(get(), get()) }
+    single<ProductoRepository> { ProductoRepositorioOffline(get<ProductoLocal>(), get<SincronizarUseCase>()) }
     single<ClienteRepository> { ClienteRepositorioRest(get(), get()) }
     // Herramienta de pruebas de la actividad autonoma (solo se ofrece en depuracion).
     single<DiagnosticoSesion> { DiagnosticoSesionRest(get(), get(), get()) }

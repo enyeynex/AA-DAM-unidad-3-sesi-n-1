@@ -1,5 +1,6 @@
 package pe.edu.upeu.pharmamobil.data.remote
 
+import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.plugins.ResponseException
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
@@ -21,8 +22,12 @@ fun mapearErrorSesion(estado: HttpStatusCode, mensaje: String?) =
         else -> ErrorSesion.SinConexion
     }
 
-/** Error del servidor que no es de sesion (validacion, conflicto, 500...). */
-class ErrorServidorException(mensaje: String) : Exception(mensaje)
+/**
+ * Error del servidor que no es de sesion (validacion, conflicto, 500...).
+ * [codigo] permite a la sincronizacion distinguir un fallo transitorio (5xx)
+ * de uno permanente (400, 404, 409).
+ */
+class ErrorServidorException(mensaje: String, val codigo: Int = 0) : Exception(mensaje)
 
 /**
  * Ejecuta una llamada al servidor y traduce sus fallos:
@@ -53,8 +58,11 @@ internal suspend fun <T> llamadaApi(
 
         val detalle = error?.validationErrors?.values?.firstOrNull()
         throw ErrorServidorException(
-            detalle ?: error?.message ?: "PharmaSoft respondió ${estado.value}"
+            detalle ?: error?.message ?: "PharmaSoft respondió ${estado.value}",
+            estado.value
         )
+    } catch (tiempo: HttpRequestTimeoutException) {
+        throw FalloSesionException(ErrorSesion.TiempoAgotado)
     } catch (fallo: IOException) {
         throw FalloSesionException(ErrorSesion.SinConexion)
     }

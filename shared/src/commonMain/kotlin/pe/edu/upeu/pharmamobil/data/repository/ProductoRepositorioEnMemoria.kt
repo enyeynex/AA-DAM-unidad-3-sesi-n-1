@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import pe.edu.upeu.pharmamobil.domain.model.Producto
+import pe.edu.upeu.pharmamobil.domain.model.ResumenSync
 import pe.edu.upeu.pharmamobil.domain.repository.ProductoRepository
 
 /**
@@ -36,7 +37,13 @@ class ProductoRepositorioEnMemoria : ProductoRepository {
     }
 
     /** No hay servidor: no hay nada que sincronizar. */
-    override suspend fun sincronizar() = Unit
+    override suspend fun sincronizar(): ResumenSync = ResumenSync()
+
+    override suspend fun reintentarFallidas(): ResumenSync = ResumenSync()
+
+    override fun observarPendientes(): Flow<Int> = flowOf(0)
+
+    override fun observarFallidas(): Flow<Int> = flowOf(0)
 
     override fun ultimaSincronizacion(): Flow<Long?> = flowOf(null)
 

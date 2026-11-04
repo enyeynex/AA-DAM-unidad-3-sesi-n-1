@@ -125,6 +125,9 @@ class ProductoRepositorioOfflineTest {
         val fallo = assertFailsWith<FalloSesionException> { e.repo.registrar(nuevo("Ibuprofeno")) }
 
         assertEquals(ErrorSesion.SesionExpirada, fallo.error)
-        assertEquals(1, e.local.pendientes().size)
+        // Guía 13: la fila no se pierde; queda fallida («Sesión vencida») para
+        // reintentarla después de volver a iniciar sesión.
+        val guardado = e.local.observar().first().single()
+        assertEquals("Sesión vencida", guardado.rechazo)
     }
 }

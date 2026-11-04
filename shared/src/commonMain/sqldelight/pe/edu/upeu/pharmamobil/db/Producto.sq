@@ -48,10 +48,10 @@ sumarIntento:
 UPDATE producto SET intentos = intentos + 1, ultimoError = ? WHERE id = ?;
 
 reiniciarIntentos:
--- «Reintentar ahora»: solo las filas que agotaron sus intentos por fallos
--- transitorios; un rechazo del servidor no se reintenta.
-UPDATE producto SET intentos = 0, ultimoError = NULL
-WHERE pendiente = 1 AND rechazo IS NULL AND intentos >= :maxIntentos;
+-- «Reintentar ahora» lo decide el usuario: las filas fallidas (por agotar
+-- intentos o por un rechazo, por ejemplo una sesión vencida) vuelven a la cola.
+UPDATE producto SET intentos = 0, ultimoError = NULL, rechazo = NULL
+WHERE pendiente = 1 AND (rechazo IS NOT NULL OR intentos >= :maxIntentos);
 
 marcarRechazado:
 UPDATE producto SET rechazo = ? WHERE id = ?;
